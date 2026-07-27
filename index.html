@@ -1,0 +1,3907 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>محفظة — منصة الإدارة المالية الشخصية والعائلية (Full Stack)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ================= LIGHT & DARK THEME TOKENS ================= */
+:root{
+  --bg:#F1F8F6;
+  --surface:#FFFFFF;
+  --surface-alt:#EAF6F1;
+  --ink:#0E2622;
+  --ink-soft:#5C7772;
+  --ink-faint:#8FA6A1;
+  --line:#DEEBE6;
+  --primary:#0E9A73;
+  --primary-dark:#087A5C;
+  --primary-soft:#D8F3E8;
+  --blue:#2C6FEE;
+  --blue-dark:#1D52C0;
+  --blue-soft:#DEE8FE;
+  --danger:#E1503F;
+  --danger-soft:#FBE2DE;
+  --warning:#E3A63A;
+  --warning-soft:#FBEED9;
+  --grad: linear-gradient(135deg,var(--primary) 0%,var(--blue) 100%);
+  --shadow-sm: 0 1px 3px rgba(14,38,34,.06);
+  --shadow-md: 0 8px 24px -8px rgba(14,38,34,.16);
+  --shadow-lg: 0 20px 44px -16px rgba(14,38,34,.24);
+  --radius: 18px;
+  --radius-sm: 12px;
+  --ease: cubic-bezier(.22,1,.36,1);
+}
+
+[data-theme="dark"] {
+  --bg:#0B1312;
+  --surface:#13211F;
+  --surface-alt:#1B2E2B;
+  --ink:#ECF5F3;
+  --ink-soft:#A0BCB7;
+  --ink-faint:#6A8A84;
+  --line:#223B36;
+  --primary:#10B98A;
+  --primary-dark:#0E9A73;
+  --primary-soft:#173E35;
+  --blue:#3B82F6;
+  --blue-dark:#2563EB;
+  --blue-soft:#1E3A5F;
+  --danger:#EF4444;
+  --danger-soft:#451A1A;
+  --warning:#F59E0B;
+  --warning-soft:#3D2A10;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.3);
+  --shadow-md: 0 8px 24px -8px rgba(0,0,0,.5);
+  --shadow-lg: 0 20px 44px -16px rgba(0,0,0,.6);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:'Tajawal',sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+  transition:background .25s var(--ease),color .25s var(--ease);
+}
+h1,h2,h3,h4,.font-display{font-family:'Cairo',sans-serif;}
+button,input,select,textarea{font-family:inherit;}
+::selection{background:var(--primary-soft);color:var(--primary-dark);}
+::-webkit-scrollbar{width:7px;height:7px;}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px;}
+
+.hidden{display:none !important;}
+
+/* ================= LAYOUT & RESPONSIVE SIDEBAR ================= */
+.app{display:flex;min-height:100vh;}
+
+.sidebar{
+  width:240px;flex:none;background:var(--surface);
+  border-inline-start:1px solid var(--line);
+  padding:20px 14px;display:flex;flex-direction:column;gap:16px;
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+  z-index:20;box-shadow:var(--shadow-sm);
+  transition:width .22s var(--ease), padding .22s var(--ease), background .25s var(--ease);
+}
+
+/* COLLAPSED STATE (Compact 72px Strip) */
+.sidebar.collapsed {
+  width:72px;
+  padding:20px 8px;
+}
+.sidebar.collapsed .brand-text,
+.sidebar.collapsed .ws-trigger .txt,
+.sidebar.collapsed .ws-trigger svg,
+.sidebar.collapsed .nav-item-text,
+.sidebar.collapsed .mini-account .t {
+  display:none !important;
+}
+.sidebar.collapsed .brand {
+  justify-content:center;
+  padding:4px 0;
+}
+.sidebar.collapsed .ws-trigger {
+  justify-content:center;
+  padding:8px 0;
+}
+.sidebar.collapsed .nav-item {
+  justify-content:center;
+  padding:10px 0;
+}
+.sidebar.collapsed .mini-account {
+  justify-content:center;
+  padding:8px 0;
+}
+
+/* RESPONSIVE MEDIA QUERIES FOR SIDEBAR */
+@media (max-width: 1024px) {
+  .sidebar {
+    width:72px;
+    padding:20px 8px;
+  }
+  .sidebar .brand-text,
+  .sidebar .ws-trigger .txt,
+  .sidebar .ws-trigger svg,
+  .sidebar .nav-item-text,
+  .sidebar .mini-account .t {
+    display:none !important;
+  }
+  .sidebar .brand,
+  .sidebar .ws-trigger,
+  .sidebar .nav-item,
+  .sidebar .mini-account {
+    justify-content:center;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    position:fixed;
+    inset-inline-start:0;
+    top:0;
+    bottom:0;
+    height:100vh;
+    width:240px !important;
+    padding:20px 14px !important;
+    transform:translateX(100%);
+    z-index:1000;
+    box-shadow:var(--shadow-lg);
+  }
+  .sidebar .brand-text,
+  .sidebar .ws-trigger .txt,
+  .sidebar .ws-trigger svg,
+  .sidebar .nav-item-text,
+  .sidebar .mini-account .t {
+    display:block !important;
+  }
+  .sidebar.mobile-open {
+    transform:translateX(0);
+  }
+}
+
+.brand{display:flex;align-items:center;gap:12px;padding:4px 6px;}
+.brand-mark{
+  width:42px;height:42px;border-radius:14px;background:var(--grad);
+  display:flex;align-items:center;justify-content:center;flex:none;
+  box-shadow:0 6px 16px -4px rgba(14,154,115,.4);
+}
+.brand-mark svg{width:22px;height:22px;}
+.brand-text .name{font-family:'Cairo';font-weight:800;font-size:18.5px;line-height:1.1;}
+.brand-text .tag{font-size:10.5px;color:var(--ink-faint);margin-top:2px;}
+
+.nav{display:flex;flex-direction:column;gap:5px;margin-top:6px;}
+.nav-item{
+  display:flex;align-items:center;gap:12px;padding:9.5px 12px;border-radius:14px;
+  cursor:pointer;color:var(--ink-soft);font-weight:600;font-size:14px;
+  transition:all .18s var(--ease);
+  user-select:none; border:none; background:none; width:100%; text-align:right;
+}
+.nav-item:hover{background:var(--surface-alt);color:var(--ink);transform:translateX(-2px);}
+.nav-item.active{background:var(--primary-soft);color:var(--primary);font-weight:700;}
+.nav-bubble{
+  width:34px;height:34px;border-radius:10px;flex:none;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--surface-alt);color:var(--ink-soft);font-size:15px;
+  transition:all .18s var(--ease);
+}
+.nav-item.active .nav-bubble{background:var(--grad);color:#fff;box-shadow:var(--shadow-sm);}
+
+.sidebar-foot{margin-top:auto;padding-top:14px;border-top:1px solid var(--line);}
+.mini-account{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:var(--surface-alt);}
+.mini-account .nav-bubble{background:var(--blue-soft);color:var(--blue);}
+.mini-account .t{font-size:11.5px;color:var(--ink-faint);}
+.mini-account .v{font-family:'Cairo';font-weight:800;font-size:14.5px;color:var(--ink);}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{
+  position:sticky;top:0;z-index:15;background:var(--bg);opacity:.96;backdrop-filter:blur(12px);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 26px;border-bottom:1px solid var(--line);
+  gap:16px;flex-wrap:wrap;transition:background .25s var(--ease);
+}
+.topbar h1{font-size:20.5px;margin:0;font-weight:800;}
+.topbar .sub{font-size:12px;color:var(--ink-faint);margin-top:2px;}
+.topbar-actions{display:flex;gap:10px;align-items:center;}
+
+.btn{
+  display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;
+  border-radius:12px;padding:9.5px 16px;font-weight:700;font-size:13.5px;
+  transition:transform .15s var(--ease),box-shadow .15s var(--ease),background .15s;
+  white-space:nowrap;
+}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:var(--grad);color:#fff;box-shadow:0 6px 16px -6px rgba(14,154,115,.55);}
+.btn-primary:hover{box-shadow:0 10px 22px -6px rgba(14,154,115,.65);}
+.btn-ghost{background:var(--surface-alt);color:var(--ink);}
+.btn-ghost:hover{background:var(--line);}
+.btn-outline{background:transparent;color:var(--ink-soft);border:1px solid var(--line);}
+.btn-outline:hover{border-color:var(--primary);color:var(--primary);}
+.btn-danger-ghost{background:var(--danger-soft);color:var(--danger);}
+.btn-sm{padding:7px 12px;font-size:12.5px;border-radius:10px;}
+
+.icon-btn{
+  width:38px;height:38px;border-radius:12px;border:1px solid var(--line);background:var(--surface);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-soft);
+  transition:all .15s var(--ease);font-size:16px;
+}
+.icon-btn:hover{background:var(--surface-alt);color:var(--primary);border-color:var(--primary-soft);}
+.fav-btn{font-size:16px;background:none;border:none;cursor:pointer;padding:4px;transition:transform .15s var(--ease);}
+.fav-btn:hover{transform:scale(1.25);}
+
+.content{padding:24px 28px 60px;flex:1;}
+.view{display:none;animation:fadeUp .3s var(--ease);}
+.view.active{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+.grid{display:grid;gap:16px;}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-2{grid-template-columns:2fr 1fr;}
+@media(max-width:1180px){.grid-4{grid-template-columns:repeat(2,1fr);} .grid-2{grid-template-columns:1fr;}}
+@media(max-width:640px){.grid-4,.grid-3{grid-template-columns:1fr;}}
+
+.card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px;box-shadow:var(--shadow-sm);transition:box-shadow .2s var(--ease),transform .2s var(--ease),background .25s var(--ease);
+}
+.card.hoverable:hover{box-shadow:var(--shadow-md);transform:translateY(-2px);}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.card-title{font-family:'Cairo';font-weight:700;font-size:15px;}
+.card-title .muted{font-weight:500;color:var(--ink-faint);font-size:12px;}
+
+.stat-card{display:flex;flex-direction:column;gap:10px;position:relative;overflow:hidden;}
+.stat-top{display:flex;align-items:flex-start;justify-content:space-between;}
+.stat-badge{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex:none;}
+.stat-label{font-size:12.5px;color:var(--ink-faint);font-weight:700;}
+.stat-value{font-family:'Cairo';font-weight:800;font-size:25px;letter-spacing:-.3px;}
+
+.bubble{
+  width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:none;
+  font-size:17px;box-shadow:var(--shadow-sm);
+}
+.bubble.lg{width:52px;height:52px;font-size:22px;border-radius:16px;}
+.bubble.sm{width:30px;height:30px;font-size:13px;border-radius:8px;}
+
+.row-item{display:flex;align-items:center;gap:12px;padding:11px 8px;border-radius:14px;transition:background .15s;}
+.row-item:hover{background:var(--surface-alt);}
+.row-item + .row-item{border-top:1px solid var(--line);}
+.row-info{flex:1;min-width:0;}
+.row-title{font-weight:700;font-size:13.8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.row-sub{font-size:12px;color:var(--ink-faint);}
+.row-amount{font-family:'Cairo';font-weight:800;font-size:14.5px;white-space:nowrap;}
+.amount-in{color:var(--primary);}
+.amount-out{color:var(--danger);}
+
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.bar-track{flex:1;height:9px;border-radius:20px;background:var(--surface-alt);overflow:hidden;}
+.bar-fill{height:100%;border-radius:20px;background:var(--grad);transition:width .5s var(--ease);}
+
+.empty{text-align:center;padding:44px 20px;color:var(--ink-faint);}
+.empty .bubble{margin:0 auto 14px;width:60px;height:60px;font-size:26px;background:var(--surface-alt);border-radius:20px;}
+.empty h4{margin:0 0 6px;color:var(--ink);font-family:'Cairo';}
+.empty p{margin:0 0 16px;font-size:13px;}
+
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;min-width:640px;}
+thead th{
+  text-align:right;font-size:11.5px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.03em;
+  font-weight:700;padding:0 10px 10px;border-bottom:1px solid var(--line);
+}
+tbody td{padding:12px 10px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:middle;}
+tbody tr{transition:background .15s;}
+tbody tr:hover{background:var(--surface-alt);}
+tbody tr:last-child td{border-bottom:none;}
+
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:700;}
+.chip-income{background:var(--primary-soft);color:var(--primary);}
+.chip-expense{background:var(--danger-soft);color:var(--danger);}
+.chip-neutral{background:var(--blue-soft);color:var(--blue);}
+
+.field-group{display:flex;flex-direction:column;gap:6px;}
+.field-group label{font-size:12.5px;font-weight:700;color:var(--ink-soft);}
+.input,.select{
+  border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:9px 12px;font-size:13px;
+  color:var(--ink);outline:none;transition:border-color .15s,background .25s;min-width:0;
+}
+.input:focus,.select:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft);}
+.search-field{position:relative;}
+.search-field input{padding-inline-start:34px;width:220px;}
+.search-field svg{position:absolute;inset-inline-start:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--ink-faint);}
+
+.filters-bar{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  background:var(--surface-alt);
+  border:1px solid var(--line);
+  padding:10px 12px;
+  border-radius:16px;
+  margin-bottom:16px;
+}
+
+.filter-dropdown{
+  height:36px;
+  padding:0 10px;
+  font-size:12.5px;
+  font-weight:700;
+  border-radius:12px;
+  background:var(--surface) !important;
+  border:1px solid var(--line) !important;
+  color:var(--ink);
+  outline:none;
+  cursor:pointer;
+  box-shadow:var(--shadow-sm);
+  transition:all .15s var(--ease);
+  width:max-content;
+  max-width:180px;
+}
+.filter-dropdown:hover, .filter-dropdown:focus{
+  border-color:var(--primary) !important;
+  box-shadow:0 0 0 3px var(--primary-soft);
+}
+
+.compact-search{
+  width:160px;
+  flex:none;
+  position:relative;
+}
+.compact-search input{
+  width:100%;
+  padding-inline-start:30px;
+}
+.compact-search svg{
+  position:absolute;
+  inset-inline-start:10px;
+  top:50%;
+  transform:translateY(-50%);
+  width:14px;
+  height:14px;
+  color:var(--ink-faint);
+}
+
+.filter-dropdown-btn{
+  height:36px;
+  padding:0 12px;
+  font-size:12.5px;
+  font-weight:700;
+  border-radius:12px;
+  background:var(--surface);
+  border:1px solid var(--line);
+  color:var(--ink-soft);
+  box-shadow:var(--shadow-sm);
+  margin-inline-start:0;
+}
+.filter-dropdown-btn:hover{
+  background:var(--surface-alt);
+  color:var(--primary);
+  border-color:var(--primary-soft);
+}
+
+.toast-stack{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px;align-items:center;}
+.toast{
+  background:var(--ink);color:var(--bg);padding:11px 20px;border-radius:14px;font-size:13px;font-weight:700;
+  box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:10px;animation:toastIn .25s var(--ease);
+}
+.toast.success{background:var(--primary-dark);color:#fff;}
+.toast.error{background:var(--danger);color:#fff;}
+
+/* AUTH SCREEN */
+.auth-screen{
+  position:fixed;inset:0;background:linear-gradient(160deg,var(--bg) 0%,var(--surface-alt) 100%);
+  display:flex;align-items:center;justify-content:center;z-index:500;padding:20px;
+}
+.auth-card{width:100%;max-width:420px;background:var(--surface);border-radius:26px;box-shadow:var(--shadow-lg);padding:34px 30px;animation:pop .3s var(--ease);}
+.auth-logo{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:22px;}
+.auth-logo .brand-mark{width:56px;height:56px;border-radius:18px;}
+.auth-logo h2{margin:4px 0 0;font-size:19px;}
+.auth-logo p{margin:0;font-size:12.5px;color:var(--ink-faint);}
+.auth-tabs{display:flex;background:var(--surface-alt);padding:4px;border-radius:14px;gap:4px;margin-bottom:18px;}
+.auth-tabs button{flex:1;border:none;background:transparent;padding:9px;border-radius:10px;cursor:pointer;font-weight:700;font-size:13px;color:var(--ink-faint);transition:.15s;}
+.auth-tabs button.on{background:var(--surface);color:var(--primary);box-shadow:var(--shadow-sm);}
+
+.avatar{
+  width:38px;height:38px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+  font-family:'Cairo';font-weight:800;font-size:14px;color:#fff;background:var(--grad);overflow:hidden;
+}
+.avatar img{width:100%;height:100%;object-fit:cover;}
+.avatar.sm{width:28px;height:28px;font-size:11px;}
+
+.role-badge{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:20px;white-space:nowrap;}
+.role-owner{background:var(--primary-soft);color:var(--primary);}
+.role-admin{background:var(--blue-soft);color:var(--blue);}
+.role-member{background:var(--warning-soft);color:var(--warning);}
+.role-viewer{background:var(--surface-alt);color:var(--ink-faint);}
+.role-super_admin{background:linear-gradient(135deg,#7C5CE0,#2C6FEE);color:#fff;}
+
+.ws-switcher{position:relative;}
+.ws-trigger{
+  display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:14px;background:var(--surface-alt);
+  cursor:pointer;border:1px solid transparent;transition:.15s;
+}
+.ws-trigger:hover{border-color:var(--line);}
+.ws-trigger .bubble{background:var(--grad);color:#fff;}
+.ws-trigger .txt{flex:1;min-width:0;}
+.ws-trigger .txt b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ws-trigger .txt span{font-size:10.5px;color:var(--ink-faint);}
+.ws-menu{
+  position:absolute;top:calc(100% + 6px);right:0;left:0;background:var(--surface);border:1px solid var(--line);
+  border-radius:16px;box-shadow:var(--shadow-md);padding:8px;z-index:60;display:none;max-height:280px;overflow-y:auto;
+}
+.ws-menu.open{display:block;animation:fadeIn .15s var(--ease);}
+.ws-opt{display:flex;align-items:center;gap:10px;padding:8px;border-radius:12px;cursor:pointer;font-size:12.5px;}
+.ws-opt:hover{background:var(--surface-alt);}
+.ws-opt.current{background:var(--primary-soft);}
+.ws-menu-foot{border-top:1px solid var(--line);margin-top:6px;padding-top:6px;display:flex;flex-direction:column;gap:4px;}
+.ws-menu-foot button{width:100%;text-align:right;background:none;border:none;padding:8px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700;color:var(--primary);}
+
+.quick-add-wrap{position:relative;}
+.quick-add-menu{
+  position:absolute;top:calc(100% + 8px);left:0;background:var(--surface);border:1px solid var(--line);
+  border-radius:16px;box-shadow:var(--shadow-md);padding:8px;min-width:210px;z-index:65;display:none;
+}
+.quick-add-menu.open{display:block;animation:fadeIn .15s var(--ease);}
+.quick-add-menu button{
+  width:100%;text-align:right;background:none;border:none;padding:9px 12px;border-radius:10px;
+  cursor:pointer;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;color:var(--ink);
+  transition:background .15s;
+}
+.quick-add-menu button:hover{background:var(--surface-alt);color:var(--primary);}
+
+.user-menu-wrap{position:relative;}
+.user-menu{
+  position:absolute;top:calc(100% + 8px);left:0;background:var(--surface);border:1px solid var(--line);border-radius:16px;
+  box-shadow:var(--shadow-md);padding:8px;min-width:190px;z-index:60;display:none;
+}
+.user-menu.open{display:block;animation:fadeIn .15s var(--ease);}
+.user-menu .um-head{padding:8px;border-bottom:1px solid var(--line);margin-bottom:6px;}
+.user-menu .um-head b{display:block;font-size:13px;}
+.user-menu .um-head span{font-size:11px;color:var(--ink-faint);}
+.user-menu button{width:100%;text-align:right;background:none;border:none;padding:9px 8px;border-radius:10px;cursor:pointer;font-size:12.5px;display:flex;align-items:center;gap:8px;color:var(--ink-soft);}
+.user-menu button:hover{background:var(--surface-alt);}
+.user-menu button.danger{color:var(--danger);}
+
+.admin-banner{
+  background:linear-gradient(135deg,#7C5CE0 0%,#2C6FEE 100%);
+  color:#fff;padding:18px 22px;border-radius:var(--radius);margin-bottom:22px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+
+.overlay{
+  position:fixed;inset:0;background:rgba(14,38,34,.55);backdrop-filter:blur(4px);
+  display:none;align-items:center;justify-content:center;z-index:100;padding:20px;
+}
+.overlay.active{display:flex;animation:fadeIn .2s var(--ease);}
+.modal{
+  background:var(--surface);border-radius:22px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;
+  box-shadow:var(--shadow-lg);animation:pop .25s var(--ease);border:1px solid var(--line);
+}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:20px 22px 4px;}
+.modal-head h3{margin:0;font-size:17px;}
+.modal-body{padding:14px 22px 22px;display:flex;flex-direction:column;gap:14px;}
+.modal-foot{padding:0 22px 22px;display:flex;gap:10px;justify-content:flex-end;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+.join-code-box{
+  background:var(--primary-soft);border:1px dashed var(--primary);border-radius:16px;padding:16px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;
+}
+.join-code-box b{font-family:'Cairo';font-size:22px;letter-spacing:1px;color:var(--primary);}
+
+@media print {
+  body{background:#fff;color:#000;}
+  .sidebar,.topbar,.filters,.btn,.icon-btn,.row-actions,#toastStack,.auth-screen{display:none !important;}
+  .main{margin:0;padding:0;}
+  .content{padding:0;}
+  .card{box-shadow:none;border:1px solid #ccc;page-break-inside:avoid;}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ AUTH SCREEN ============ -->
+<div class="auth-screen" id="authScreen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 12h6M12 9v6"/></svg>
+      </div>
+      <h2>مرحباً بك في محفظة</h2>
+      <p>منصة إدارة المصروفات العائلية وقاعدة البيانات SQLite</p>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="on" id="tabAuthLogin" onclick="switchAuthTab('login')">تسجيل الدخول</button>
+      <button id="tabAuthSignup" onclick="switchAuthTab('signup')">حساب جديد</button>
+      <button id="tabAuthCodeJoin" onclick="switchAuthTab('codeJoin')">🔗 انضمام بكود</button>
+    </div>
+
+    <!-- LOGIN PANE -->
+    <div id="authPaneLogin" style="display:block;">
+      <div class="field-group">
+        <label>البريد الإلكتروني أو اسم المستخدم (@username)</label>
+        <input class="input" id="loginEmail" placeholder="example@domain.com أو ahmed@" onkeydown="if(event.key==='Enter') doLogin()">
+      </div>
+      <div class="field-group" style="margin-top:12px;">
+        <label>كلمة المرور</label>
+        <input class="input" id="loginPass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter') doLogin()">
+      </div>
+      <button class="btn btn-primary" id="btnDoLogin" onclick="doLogin()" style="width:100%;justify-content:center;margin-top:18px;">تسجيل الدخول</button>
+    </div>
+
+    <!-- SIGNUP PANE -->
+    <div id="authPaneSignup" style="display:none;">
+      <div class="field-group">
+        <label>الاسم الكامل *</label>
+        <input class="input" id="signupName" placeholder="مثال: محمد مصطفى">
+      </div>
+      <div class="field-group" style="margin-top:12px;">
+        <label>البريد الإلكتروني *</label>
+        <input class="input" id="signupEmail" placeholder="m.mostafa@example.com">
+      </div>
+      <div class="field-group" style="margin-top:12px;">
+        <label>كلمة المرور *</label>
+        <input class="input" id="signupPass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter') doSignup()">
+      </div>
+      <button class="btn btn-primary" id="btnDoSignup" onclick="doSignup()" style="width:100%;justify-content:center;margin-top:18px;">إنشاء الحساب الان</button>
+    </div>
+
+    <!-- CODE JOIN PANE (FAST GUEST/FAMILY JOIN) -->
+    <div id="authPaneCodeJoin" style="display:none;">
+      <div class="field-group">
+        <label>كود دعوة المساحة العائلية *</label>
+        <input class="input" id="codeJoinCode" placeholder="مثال: FAM-AHMED" style="text-transform:uppercase;font-family:'Cairo';font-weight:800;font-size:15px;">
+      </div>
+      <div class="field-group" style="margin-top:12px;">
+        <label>اسمك الكامل (ليتعرف عليك باقي أفراد الأسرة) *</label>
+        <input class="input" id="codeJoinName" placeholder="مثال: ياسين أحمد أو ماما">
+      </div>
+      <div class="field-group" style="margin-top:12px;">
+        <label>كلمة مرور جديدة لحسابك (PIN) *</label>
+        <input class="input" id="codeJoinPass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter') doCodeJoin()">
+      </div>
+      <div class="field-group" style="margin-top:12px;">
+        <label>اسم مستخدم خاص بك (اختياري)</label>
+        <input class="input" id="codeJoinUsername" placeholder="مثال: yassin">
+      </div>
+      <button class="btn btn-primary" id="btnDoCodeJoin" onclick="doCodeJoin()" style="width:100%;justify-content:center;margin-top:18px;">الانضمام السريع للمساحة 🚀</button>
+    </div>
+
+    <p id="authNote" style="color:var(--danger);font-weight:700;margin-top:14px;text-align:center;"></p>
+  </div>
+</div>
+
+<div class="app" id="app" style="display:none;">
+
+  <!-- ============ FLEXIBLE & RESPONSIVE SIDEBAR ============ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 12h6M12 9v6"/></svg>
+      </div>
+      <div class="brand-text">
+        <div class="name">محفظة</div>
+        <div class="tag" id="appRoleTag">SQLite Full Stack</div>
+      </div>
+    </div>
+
+    <div class="ws-switcher" id="wsSwitcher">
+      <div class="ws-trigger" id="wsTrigger">
+        <div class="bubble sm" id="wsTriggerIcon">👤</div>
+        <div class="txt"><b id="wsTriggerName">مساحة الأسرة</b><span id="wsTriggerRole">مالك</span></div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="ws-menu" id="wsMenu">
+        <div id="wsMenuList"></div>
+        <div class="ws-menu-foot">
+          <button id="btnCreateWs">+ إنشاء مساحة جديدة</button>
+          <button id="btnJoinWsByCode">🔗 الانضمام بكود المساحة</button>
+        </div>
+      </div>
+    </div>
+
+    <nav class="nav" id="navList">
+      <!-- Nav items populated dynamically -->
+    </nav>
+
+    <div class="sidebar-foot" id="sidebarFoot">
+      <div class="mini-account">
+        <div class="nav-bubble"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2l3 6 6 1-4.5 4.5L18 20l-6-3-6 3 1.5-6.5L3 9l6-1z"/></svg></div>
+        <div>
+          <div class="t" id="miniBalLabel">إجمالي الرصيد</div>
+          <div class="v" id="miniBalance">٠ ج.م</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN CONTENT ============ -->
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <!-- SIDEBAR COLLAPSE / MOBILE TOGGLE BUTTON -->
+        <button class="icon-btn" id="btnToggleSidebar" title="طي / توسيع القائمة الجانبية">☰</button>
+        <div>
+          <h1 id="pageTitle">لوحة التحكم</h1>
+          <div class="sub" id="pageSub">نظرة عامة على وضعك المالي</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <!-- REPORT EXPORT BUTTON -->
+        <button class="btn btn-ghost btn-sm" onclick="exportFinancialReport()" title="طباعة وتصدير تقرير مالى ملخص">📄 تصدير تقرير</button>
+
+        <!-- MULTI-ACTION QUICK ADD BUTTON -->
+        <div class="quick-add-wrap">
+          <button class="btn btn-primary" id="btnQuickAdd">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            إضافة ▾
+          </button>
+          <div class="quick-add-menu" id="quickAddMenu">
+            <button onclick="openTxModal()"><span style="font-size:16px;">🧾</span> إضافة معاملة مالية</button>
+            <button onclick="openAccModal()"><span style="font-size:16px;">🏦</span> إضافة حساب مالى</button>
+            <button onclick="openCatModal()"><span style="font-size:16px;">📂</span> إضافة فئة جديدة</button>
+            <button onclick="openBudModal()"><span style="font-size:16px;">💵</span> إضافة ميزانية</button>
+            <button onclick="openTagModal()"><span style="font-size:16px;">🏷️</span> إضافة وسم جديد</button>
+            <button onclick="openModal('modalWs')"><span style="font-size:16px;">👨‍👩‍👧‍👦</span> إنشاء مساحة جديدة</button>
+          </div>
+        </div>
+
+        <!-- NOTIFICATION BELL DROPDOWN -->
+        <div class="user-menu-wrap" style="position:relative;">
+          <button class="icon-btn" id="btnNotifToggle" onclick="toggleNotifDropdown()" title="مركز الإشعارات الفورية" style="position:relative;">
+            🔔
+            <span id="notifCountBadge" style="position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;font-size:10px;font-weight:800;border-radius:10px;padding:2px 5px;display:none;">0</span>
+          </button>
+          <div class="user-menu" id="notifDropdown" style="width:320px;max-height:400px;overflow-y:auto;right:auto;left:0;">
+            <div class="um-head" style="display:flex;justify-content:space-between;align-items:center;">
+              <b>🔔 مركز الإشعارات الفورية</b>
+              <button class="btn btn-ghost btn-sm" onclick="markNotifsAsRead()" style="font-size:11px;padding:2px 6px;">تحديد الكل كمقروء</button>
+            </div>
+            <div id="notifListBody" style="padding:8px 0;">
+              <p class="muted" style="font-size:12px;text-align:center;padding:12px;">لا توجد إشعارات جديدة</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- RECURRING BILLS BUTTON -->
+        <button class="btn btn-ghost btn-sm" onclick="openModal('modalRecurringBills')" title="جدولة وتذكير الفواتير الدورية">📅 الفواتير الدورية</button>
+
+        <!-- INSTALL PWA APP BUTTON -->
+        <button class="btn btn-outline btn-sm hidden" id="btnInstallPwa" onclick="installPwaApp()" title="تثبيت تطبيق محفظة على جهازك">📲 تثبيت التطبيق</button>
+
+        <!-- DARK MODE TOGGLE BUTTON -->
+        <button class="icon-btn" id="btnThemeToggle" title="تبديل الوضع الليلي / النهاري">🌙</button>
+
+        <!-- USER AVATAR & MENU -->
+        <div class="user-menu-wrap">
+          <div class="avatar" id="userAvatarBtn" style="cursor:pointer;">؟</div>
+          <div class="user-menu" id="userMenu">
+            <div class="um-head"><b id="umName">—</b><span id="umEmail">—</span></div>
+            <button onclick="goTo('settings')">⚙️ إعدادات الحساب والبروفايل</button>
+            <button id="btnLogout" class="danger">🚪 تسجيل الخروج</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ============ DASHBOARD ============ -->
+      <section class="view active" id="view-dashboard">
+        <!-- SMART BUDGET OVERFLOW ALERT BANNER -->
+        <div id="smartBudgetAlertBanner" class="hidden" style="margin-bottom:16px;"></div>
+
+        <!-- TOP 4 STAT CARDS -->
+        <div class="grid grid-4" id="statCards"></div>
+
+        <!-- HEALTH SCORE & SMART ADVICE + SAVINGS GOAL TRACKER -->
+        <div class="grid grid-2" style="margin-top:16px;">
+          <!-- FINANCIAL HEALTH & ADVICE -->
+          <div class="card hoverable">
+            <div class="card-head">
+              <div class="card-title">🛡️ مؤشر الصحة المالية للأسرة <span class="muted">تحليل ذكي</span></div>
+              <span class="chip chip-income" id="healthBadge">ممتاز 🟢 85%</span>
+            </div>
+            <div id="healthAdviceBox" style="padding:10px 0;"></div>
+          </div>
+
+          <!-- SAVINGS GOAL TRACKER -->
+          <div class="card hoverable">
+            <div class="card-head">
+              <div class="card-title">🎯 هدف الادخار السنوي <span class="muted">عام 2026</span></div>
+              <span class="muted" style="font-weight:700;font-size:12px;" id="savingsGoalText">0 / 50,000 ج.م</span>
+            </div>
+            <div style="margin-top:10px;" id="savingsGoalProgress"></div>
+          </div>
+        </div>
+
+        <!-- AI FINANCIAL ADVISOR & SMART INSIGHTS CARD -->
+        <div class="card hoverable" style="margin-top:16px;background:linear-gradient(135deg, rgba(14,154,115,0.06) 0%, rgba(99,102,241,0.06) 100%);border:1px solid rgba(14,154,115,0.2);">
+          <div class="card-head">
+            <div class="card-title">🤖 المستشار المالي الذكي (AI Financial Advisor & Insights)</div>
+            <span class="badge" style="background:var(--primary);color:#fff;font-weight:700;padding:4px 10px;">تحليل ذكي حقيقي ⚡</span>
+          </div>
+          <div id="aiSmartInsightsBody" class="grid" style="grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:12px;margin-top:10px;"></div>
+        </div>
+
+        <!-- MONTHLY CASH FLOW SVG TREND + MEMBER DONUT CHART -->
+        <div class="grid grid-2" style="margin-top:16px;">
+          <!-- MONTHLY CASH FLOW TREND -->
+          <div class="card hoverable">
+            <div class="card-head">
+              <div class="card-title">📈 مقارنة التدفق المالي الشهري <span class="muted">رسم بياني تفاعلي</span></div>
+            </div>
+            <div id="cashFlowBars" style="margin-top:10px;"></div>
+          </div>
+
+          <!-- MEMBER EXPENSE CONTRIBUTION (SVG DONUT CHART) -->
+          <div class="card hoverable">
+            <div class="card-head">
+              <div class="card-title">👥 توزيع الإنفاق حسب أفراد الأسرة <span class="muted">رسم دائرى حديث</span></div>
+            </div>
+            <div id="memberDonutBox" style="margin-top:6px;"></div>
+          </div>
+        </div>
+
+        <!-- UPCOMING BILLS + TOP CATEGORIES -->
+        <div class="grid grid-2" style="margin-top:16px;">
+          <div class="card hoverable">
+            <div class="card-head">
+              <div class="card-title">⏳ التزامات وفواتير قادمة <span class="muted">المواعيد المستحقة</span></div>
+              <button class="btn btn-ghost btn-sm" onclick="toast('تم إضافة تذكير للفواتير القادمة', 'info')">🔔 تذكير</button>
+            </div>
+            <div id="upcomingBillsList" style="margin-top:6px;"></div>
+          </div>
+        </div>
+
+        <!-- RECENT TRANSACTIONS + TOP CATEGORIES -->
+        <div class="grid grid-2" style="margin-top:16px;">
+          <div class="card hoverable">
+            <div class="card-head">
+              <div class="card-title">أحدث المعاملات <span class="muted">خلال الـ 90 يوماً الماضية</span></div>
+              <button class="btn btn-ghost btn-sm" data-nav="transactions">عرض الكل</button>
+            </div>
+            <div id="recentTxList"></div>
+          </div>
+
+          <div class="card hoverable">
+            <div class="card-head">
+              <div class="card-title">أكثر الفئات إنفاقاً <span class="muted">آخر 3 أشهر</span></div>
+            </div>
+            <div id="topCategoriesList"></div>
+          </div>
+        </div>
+
+        <!-- BUDGETS SUMMARY + QUICK ACCOUNTS BALANCES -->
+        <div class="grid grid-2" style="margin-top:16px;">
+          <div class="card hoverable">
+            <div class="card-head">
+              <div class="card-title">ملخص الميزانيات <span class="muted">نسبة الاستهلاك</span></div>
+              <button class="btn btn-ghost btn-sm" data-nav="budgets">إدارة الميزانيات</button>
+            </div>
+            <div class="grid grid-3" id="dashBudgets"></div>
+          </div>
+          <div class="card hoverable">
+            <div class="card-head"><div class="card-title">الحسابات <span class="muted">أرصدة سريعة</span></div></div>
+            <div id="dashAccounts"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ TRANSACTIONS ============ -->
+      <section class="view" id="view-transactions">
+        <div class="card">
+          <div class="filters-bar">
+            <!-- SEARCH FIELD (MATCHING STYLING) -->
+            <div class="compact-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+              <input class="input filter-dropdown" id="txSearch" placeholder="بحث المعاملات...">
+            </div>
+
+            <!-- UNIFIED DROPDOWNS -->
+            <select class="select filter-dropdown" id="txFilterType"><option value="">النوع 🏷️</option><option value="income">إيرادات 💰</option><option value="expense">مصروفات 💸</option></select>
+            <select class="select filter-dropdown" id="txFilterAccount"><option value="">الحساب 🏦</option></select>
+            <select class="select filter-dropdown" id="txFilterCategory"><option value="">الفئة 📂</option></select>
+
+            <!-- DATE DROPDOWN SELECT -->
+            <select class="select filter-dropdown" id="txFilterDateSelect" onchange="handleDateDropdownChange(this.value)">
+              <option value="all">التاريخ 📅 (الكل)</option>
+              <option value="today">اليوم</option>
+              <option value="yesterday">الأمس</option>
+              <option value="this_week">هذا الأسبوع</option>
+              <option value="this_month">هذا الشهر</option>
+              <option value="last_month">الشهر الماضي</option>
+              <option value="last_90days">آخر 3 أشهر</option>
+              <option value="custom">نطاق مخصص ✏️</option>
+            </select>
+
+            <!-- HIDDEN CUSTOM DATE RANGE PICKER (SHOWN WHEN 'custom' SELECTED) -->
+            <div id="customDateRangeBox" class="hidden" style="display:none;align-items:center;gap:6px;">
+              <input class="input filter-dropdown" id="txFilterFrom" type="date" style="width:130px;padding:0 6px;" title="من تاريخ">
+              <span style="font-size:11px;font-weight:700;color:var(--ink-faint);">إلى</span>
+              <input class="input filter-dropdown" id="txFilterTo" type="date" style="width:130px;padding:0 6px;" title="إلى تاريخ">
+            </div>
+
+            <!-- RESET BUTTON -->
+            <button class="btn filter-dropdown-btn" id="btnResetTxFilters" title="إعادة تصفير">🔄 تصفير</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>المفضلة</th><th>الوصف</th><th>الفئة</th><th>الحساب</th><th>بواسطة</th><th>التاريخ</th><th>المبلغ</th><th></th>
+              </tr></thead>
+              <tbody id="txTableBody"></tbody>
+            </table>
+          </div>
+          <div id="txEmpty" class="empty hidden">
+            <div class="bubble">🧾</div>
+            <h4>لا توجد معاملات بعد</h4>
+            <p>ابدأ بتسجيل أول معاملة مالية لك لمتابعة إيراداتك ومصروفاتك.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ FAVORITES ============ -->
+      <section class="view" id="view-favorites">
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">❤️ المعاملات المفضلة <span class="muted">الوصول السريع للعمليات الهامة والمكررة</span></div>
+            <div id="favCountBadge" class="chip chip-income" style="font-size:12.5px;">٠ معاملات مفضلة</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>المفضلة</th><th>الوصف</th><th>الفئة</th><th>الحساب</th><th>التاريخ</th><th>المبلغ</th><th></th>
+              </tr></thead>
+              <tbody id="favTableBody"></tbody>
+            </table>
+          </div>
+          <div id="favEmpty" class="empty hidden">
+            <div class="bubble">❤️</div>
+            <h4>لا توجد معاملات في المفضلة</h4>
+            <p>اضغط على أيقونة القلب (❤️) بجانب أي معاملة لإضافتها إلى المفضلة هنا.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ ACCOUNTS ============ -->
+      <section class="view" id="view-accounts">
+        <div class="filters">
+          <button class="btn btn-primary" id="btnAddAccPage" style="margin-inline-start:auto;">+ إضافة حساب</button>
+        </div>
+        <div class="grid grid-3" id="accountsGrid"></div>
+        <div id="accEmpty" class="empty hidden"><div class="bubble">🏦</div><h4>لا توجد حسابات</h4></div>
+      </section>
+
+      <!-- ============ CATEGORIES ============ -->
+      <section class="view" id="view-categories">
+        <div class="filters">
+          <button class="btn btn-primary" id="btnAddCatPage" style="margin-inline-start:auto;">+ إضافة فئة</button>
+        </div>
+        <div class="grid grid-4" id="categoriesGrid"></div>
+      </section>
+
+      <!-- ============ BUDGETS ============ -->
+      <section class="view" id="view-budgets">
+        <div class="filters">
+          <button class="btn btn-primary" id="btnAddBudPage" style="margin-inline-start:auto;">+ إضافة ميزانية</button>
+        </div>
+        <div class="grid grid-3" id="budgetsGrid"></div>
+        <div id="budEmpty" class="empty hidden"><div class="bubble">💵</div><h4>لا توجد ميزانيات</h4></div>
+      </section>
+
+      <!-- ============ TAGS ============ -->
+      <section class="view" id="view-tags">
+        <div class="filters">
+          <button class="btn btn-primary" id="btnAddTagPage" style="margin-inline-start:auto;">+ إضافة وسم</button>
+        </div>
+        <div class="grid grid-4" id="tagsGrid"></div>
+      </section>
+
+      <!-- ============ REPORTS ============ -->
+      <section class="view" id="view-reports">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+          <div>
+            <h3 style="margin:0;">📊 التقارير المالية والتحليلات (90 يوماً - 3 شهور)</h3>
+            <p class="muted" style="margin:4px 0 0;font-size:12.5px;">ملخص الإيرادات، المصروفات، وتصدير التقارير لتطبيقات PDF أو Excel</p>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-ghost" id="btnExportPDF">📄 تصدير التقرير PDF</button>
+            <button class="btn btn-outline" id="btnExportExcel">📊 تصدير إلى Excel (CSV)</button>
+          </div>
+        </div>
+
+        <div class="grid grid-4" id="reportKpis"></div>
+
+        <div class="grid grid-2" style="margin-top:16px;">
+          <div class="card">
+            <div class="card-head"><div class="card-title">توزيع المصروفات حسب الفئة (آخر 3 أشهر)</div></div>
+            <div id="reportCategoryBars"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">ملخص أداء الميزانيات</div></div>
+            <div class="grid" id="reportBudgets" style="grid-template-columns:1fr;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ TEAM & FAMILY WORKSPACE ============ -->
+      <section class="view" id="view-team">
+        <div class="grid grid-2">
+          <div>
+            <div class="card" style="margin-bottom:16px;">
+              <div class="card-head" style="display:flex;justify-content:space-between;align-items:center;">
+                <div class="card-title" id="teamCardTitle">أعضاء الأسرة والمساحة</div>
+                <button class="btn btn-outline btn-sm" id="btnOpenRequestFund" onclick="openModal('modalRequestFund')">💸 طلب مصروف / تمويل</button>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead id="teamTableHead"><tr><th>العضو</th><th>البريد الإلكتروني</th><th>الدور</th><th>الميزانية المخصصة والاستهلاك</th><th>الإجراءات والصلاحيات</th></tr></thead>
+                  <tbody id="teamMembersBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- FAMILY SAVER LEADERBOARD CARD -->
+            <div class="card">
+              <div class="card-head"><div class="card-title">🏆 لوحة الشرف العائلية والالتزام بالميزانية (هذا الشهر)</div></div>
+              <div id="familySaverLeaderboard" class="grid" style="grid-template-columns:1fr;gap:10px;"></div>
+            </div>
+          </div>
+
+          <div>
+            <!-- OWNER ONLY JOIN CODE CARD -->
+            <div class="card" id="teamJoinCodeCard" style="margin-bottom:16px;">
+              <div class="card-title" style="margin-bottom:10px;">🔑 كود الانضمام للمساحة</div>
+              <p class="muted" style="font-size:12px;margin:0 0 12px;">أي فرد يمتلك هذا الكود يمكنه إرسال طلب انضمام لمساحتكم العائلية.</p>
+              <div class="join-code-box">
+                <b id="wsJoinCodeDisplay">FAM-AHMED</b>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn btn-ghost btn-sm" onclick="copyJoinCode()">📋 نسخ</button>
+                  <button class="btn btn-outline btn-sm" id="btnOpenEditCode">✏️ تعديل الكود</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- NON-OWNER / GUEST JOIN BY CODE CARD -->
+            <div class="card" id="teamJoinByCodeActionCard" style="margin-bottom:16px;display:none;">
+              <div class="card-title" style="margin-bottom:8px;">🔗 الانضمام إلى مساحة أو أسرة بكود</div>
+              <p class="muted" style="font-size:12px;margin:0 0 12px;">أدخل كود الانضمام المكون من حروف وأرقام والممنوح لك من رب الأسرة لطلب الانضمام للمساحة.</p>
+              <div class="field-group">
+                <input class="input" id="joinCodeTeamInput" placeholder="مثال: FAM-AHMED" style="text-transform:uppercase;font-family:'Cairo';font-weight:800;font-size:15px;" onkeydown="if(event.key==='Enter') doTeamJoinByCode()">
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="doTeamJoinByCode()" style="margin-top:12px;width:100%;justify-content:center;">إرسال طلب الانضمام للأسرة 🚀</button>
+            </div>
+
+            <!-- OWNER ONLY PENDING JOIN REQUESTS CARD -->
+            <div class="card" id="teamRequestsCard" style="margin-bottom:16px;">
+              <div class="card-head"><div class="card-title">📩 طلبات الانضمام المعلقة</div></div>
+              <div id="teamJoinRequestsList"></div>
+            </div>
+
+            <!-- FUND / EXPENSE REQUESTS CARD -->
+            <div class="card" id="teamFundRequestsCard">
+              <div class="card-head"><div class="card-title">💸 طلبات التمويل والمصروفات بالأسرة</div></div>
+              <div id="teamFundRequestsList"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SETTINGS ============ -->
+      <section class="view" id="view-settings">
+        <div class="grid grid-2">
+          <!-- PROFILE EDIT CARD -->
+          <div class="card">
+            <div class="card-head"><div class="card-title">👤 تعديل بيانات الملف الشخصي والحساب</div></div>
+            <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
+              <div class="avatar" id="settingsAvatarPreview" style="width:64px;height:64px;font-size:24px;">؟</div>
+              <div style="flex:1;">
+                <div class="field-group">
+                  <label>رابط الصورة الشخصية / Avatar</label>
+                  <input class="input" id="setProfileAvatar" placeholder="https://... أو اختر ملفاً من الجهاز">
+                </div>
+                <div style="margin-top:6px;">
+                  <input type="file" id="fileAvatarPicker" accept="image/*" style="display:none;">
+                  <button class="btn btn-ghost btn-sm" onclick="document.getElementById('fileAvatarPicker').click()">📷 رفع صورة من الجهاز</button>
+                </div>
+              </div>
+            </div>
+            <div class="grid grid-2" style="gap:12px;">
+              <div class="field-group">
+                <label>الاسم الكامل *</label>
+                <input class="input" id="setProfileName" placeholder="مثال: أحمد محمود">
+              </div>
+              <div class="field-group">
+                <label>البريد الإلكتروني *</label>
+                <input class="input" id="setProfileEmail" placeholder="example@domain.com">
+              </div>
+            </div>
+            <div class="grid grid-2" style="gap:12px;margin-top:12px;">
+              <div class="field-group">
+                <label>اسم المستخدم الفريد (@username)</label>
+                <input class="input" id="setProfileUsername" placeholder="مثال: ahmed">
+              </div>
+              <div class="field-group">
+                <label>رقم الهاتف / الموبايل</label>
+                <input class="input" id="setProfilePhone" placeholder="010XXXXXXXX">
+              </div>
+            </div>
+              <div class="field-group">
+                <label>المسمى / الدور العائلي</label>
+                <input class="input" id="setProfileJobTitle" placeholder="مثال: رب الأسرة / الأم">
+              </div>
+            </div>
+            <div class="field-group" style="margin-top:12px;">
+              <label>نبذة شخصية (Bio)</label>
+              <input class="input" id="setProfileBio" placeholder="اكتب نبذة مختصرة عن دورك أو اهتماماتك المالية">
+            </div>
+            <button class="btn btn-primary" id="btnSaveProfile" style="margin-top:18px;">💾 حفظ تغييرات البروفايل والبيانات الشخصية</button>
+          </div>
+
+          <div class="card">
+            <div class="settings-section">
+              <h4>💱 الإعدادات العامة للمنصة</h4>
+              <div class="field-group"><label>العملة المعتمدة للمساحة</label>
+                <select class="select" id="setCurrency">
+                  <option value="EGP">جنيه مصري (ج.م)</option>
+                  <option value="SAR">ريال سعودي (﷼)</option>
+                  <option value="AED">درهم إماراتي (د.إ)</option>
+                  <option value="USD">دولار أمريكي ($)</option>
+                  <option value="EUR">يورو أوروبي (€)</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn btn-primary" id="btnSaveSettings" style="margin-top:14px;">حفظ الإعدادات والعملة</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ AUDIT LOG DASHBOARD ============ -->
+      <section class="view" id="view-audit_log">
+        <div class="card">
+          <div class="card-head" style="display:flex;justify-content:space-between;align-items:center;">
+            <div class="card-title">📜 سجل الأنشطة والتدقيق المفصل بالمنصة</div>
+            <button class="btn btn-outline btn-sm" onclick="renderAuditLogView()">🔄 تحديث السجل</button>
+          </div>
+          <p class="muted" style="font-size:12px;margin-bottom:14px;">سجل زمني حي لكافة العمليات والتعديلات والإضافات التي قام بها أعضاء المساحة لضمان الشفافية والأمان.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>الوقت والتاريخ</th><th>المستجيب / الفاعل</th><th>الحدث / الإجراء</th><th>الهدف / البيان</th><th>بيانات إضافية</th></tr></thead>
+              <tbody id="auditLogBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SUPER ADMIN DASHBOARD ============ -->
+      <section class="view" id="view-admin_overview">
+        <div class="admin-banner">
+          <div>
+            <h3 style="margin:0 0 4px;font-size:18px;">🛡️ لوحة الإشراف والإدارة المركزية للنظام</h3>
+            <p style="margin:0;font-size:12.5px;opacity:.95;">مساحة خاصة بالسوبر أدمن لمراقبة أداء النظام، المستخدمين، والمساحات الحية.</p>
+          </div>
+          <span class="role-badge role-super_admin" style="font-size:13px;padding:6px 14px;">Super Admin Command Center</span>
+        </div>
+
+        <div class="grid grid-4" id="superAdminKpis"></div>
+
+        <div class="grid grid-2" style="margin-top:18px;">
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title">👥 المستخدمون بالنظام <span class="muted">التحكم في الصلاحيات والحالات</span></div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>المستخدم</th><th>البريد</th><th>الدور العام</th><th>الحالة</th><th></th></tr></thead>
+                <tbody id="saUsersBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title">🗂️ المساحات المسجلة <span class="muted">مراقبة شاملة</span></div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>المساحة</th><th>النوع</th><th>المالك</th><th>الأعضاء</th></tr></thead>
+                <tbody id="saWorkspacesBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SUPER ADMIN USERS TAB ============ -->
+      <section class="view" id="view-admin_users">
+        <div class="card">
+          <div class="card-head" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <div class="card-title">👥 إدارة مستخدمي النظام والصلاحيات الكاملة</div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-primary btn-sm" onclick="openModal('modalSaAddUser')">➕ إضافة مستخدم جديد</button>
+              <button class="btn btn-ghost btn-sm" onclick="downloadDbBackup()">💾 تحميل نسخة احتياطية (SQLite)</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>المستخدم</th><th>البريد الإلكتروني</th><th>الدور العام</th><th>الحالة</th><th>تاريخ التسجيل</th><th>الإجراءات والتحكم</th></tr></thead>
+              <tbody id="saFullUsersBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SUPER ADMIN WORKSPACES TAB ============ -->
+      <section class="view" id="view-admin_workspaces">
+        <div class="card">
+          <div class="card-head"><div class="card-title">🗂️ رقابة المساحات والحسابات المالية في كل النظام</div></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>المساحة</th><th>النوع</th><th>المالك</th><th>عدد الأعضاء</th><th>تاريخ الإنشاء</th></tr></thead>
+              <tbody id="saFullWorkspacesBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SUPER ADMIN TRANSACTIONS MONITOR ============ -->
+      <section class="view" id="view-admin_transactions">
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">🧾 رقابة كافة المعاملات المالية في جميع مساحات النظام</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>الوصف</th><th>المساحة</th><th>الفئة</th><th>الحساب</th><th>المُنشئ</th><th>التاريخ</th><th>المبلغ</th>
+              </tr></thead>
+              <tbody id="saTxBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SUPER ADMIN AUDIT LOG ============ -->
+      <section class="view" id="view-admin_audit">
+        <div class="card">
+          <div class="card-head"><div class="card-title">📝 سجل النشاطات وأمان النظام الشامل</div></div>
+          <div id="saAuditList"></div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<!-- Modal: Transaction -->
+<div class="overlay" id="modalTx">
+  <div class="modal">
+    <div class="modal-head"><h3 id="txModalTitle">إضافة معاملة</h3><button class="icon-btn" data-close="modalTx">✕</button></div>
+    <div class="modal-body">
+      <div class="field-group"><label>المبلغ *</label><input class="input" id="txAmount" type="number" step="0.01" placeholder="0.00"></div>
+      <div class="two-col">
+        <div class="field-group"><label>الحساب *</label><select class="select" id="txAccount"></select></div>
+        <div class="field-group"><label>الفئة *</label><select class="select" id="txCategory"></select></div>
+      </div>
+      <div class="field-group"><label>التاريخ</label><input class="input" id="txDate" type="date"></div>
+      <div class="field-group">
+        <label><input type="checkbox" id="txIsFav"> إضافة المعاملة إلى المفضلة (❤️)</label>
+      </div>
+      <div class="field-group"><label>ملاحظات</label><textarea class="input" id="txNote" placeholder="ملاحظات اختيارية..."></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close="modalTx">إلغاء</button>
+      <button class="btn btn-primary" id="btnSaveTx">حفظ المعاملة</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Account -->
+<div class="overlay" id="modalAcc">
+  <div class="modal">
+    <div class="modal-head"><h3 id="accModalTitle">إضافة حساب مالى</h3><button class="icon-btn" data-close="modalAcc">✕</button></div>
+    <div class="modal-body">
+      <div class="field-group"><label>اسم الحساب *</label><input class="input" id="accName" placeholder="مثال: الخزينة النقدية"></div>
+      <div class="field-group"><label>نوع الحساب</label>
+        <select class="select" id="accType">
+          <option value="cash">نقدي</option>
+          <option value="bank">حساب بنكي</option>
+          <option value="wallet">محفظة إلكترونية</option>
+          <option value="card">بطاقة بنكية</option>
+        </select>
+      </div>
+      <div class="field-group"><label>الرصيد الابتدائي</label><input class="input" id="accBalance" type="number" step="0.01" placeholder="0.00"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close="modalAcc">إلغاء</button>
+      <button class="btn btn-primary" id="btnSaveAcc">حفظ الحساب</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Category -->
+<div class="overlay" id="modalCat">
+  <div class="modal">
+    <div class="modal-head"><h3 id="catModalTitle">إضافة فئة</h3><button class="icon-btn" data-close="modalCat">✕</button></div>
+    <div class="modal-body">
+      <div class="field-group"><label>اسم الفئة *</label><input class="input" id="catName" placeholder="مثال: مواصلات"></div>
+      <div class="field-group"><label>نوع الفئة</label>
+        <select class="select" id="catType"><option value="expense">مصروف</option><option value="income">إيراد</option></select>
+      </div>
+      <div class="two-col">
+        <div class="field-group"><label>الأيقونة</label><input class="input" id="catIcon" placeholder="🛒"></div>
+        <div class="field-group"><label>اللون</label><input class="input" id="catColor" type="color" value="#0E9A73"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close="modalCat">إلغاء</button>
+      <button class="btn btn-primary" id="btnSaveCat">حفظ الفئة</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Budget -->
+<div class="overlay" id="modalBud">
+  <div class="modal">
+    <div class="modal-head"><h3 id="budModalTitle">إضافة ميزانية</h3><button class="icon-btn" data-close="modalBud">✕</button></div>
+    <div class="modal-body">
+      <div class="field-group"><label>اسم الميزانية *</label><input class="input" id="budName" placeholder="مثال: ميزانية الطعام"></div>
+      <div class="field-group"><label>الفئة *</label><select class="select" id="budCategory"></select></div>
+      <div class="field-group"><label>المبلغ المحدد *</label><input class="input" id="budAmount" type="number" step="0.01" placeholder="0.00"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close="modalBud">إلغاء</button>
+      <button class="btn btn-primary" id="btnSaveBud">حفظ الميزانية</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Tag -->
+<div class="overlay" id="modalTag">
+  <div class="modal">
+    <div class="modal-head"><h3 id="tagModalTitle">إضافة وسم</h3><button class="icon-btn" data-close="modalTag">✕</button></div>
+    <div class="modal-body">
+      <div class="field-group"><label>اسم الوسم *</label><input class="input" id="tagName" placeholder="مثال: طوارئ"></div>
+      <div class="two-col">
+        <div class="field-group"><label>الأيقونة</label><input class="input" id="tagIcon" placeholder="🏷️"></div>
+        <div class="field-group"><label>اللون</label><input class="input" id="tagColor" type="color" value="#2C6FEE"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close="modalTag">إلغاء</button>
+      <button class="btn btn-primary" id="btnSaveTag">حفظ الوسم</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Create Workspace -->
+<div class="overlay" id="modalWs">
+  <div class="modal">
+    <div class="modal-head"><h3>إنشاء مساحة عمل جديدة</h3><button class="icon-btn" data-close="modalWs">✕</button></div>
+    <div class="modal-body">
+      <div class="field-group"><label>اسم المساحة *</label><input class="input" id="wsName" placeholder="مثال: مساحة منزلية"></div>
+      <div class="field-group"><label>كود الانضمام المخصص (اختياري)</label><input class="input" id="wsCustomCode" placeholder="مثال: MY-FAMILY" style="text-transform:uppercase;"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close="modalWs">إلغاء</button>
+      <button class="btn btn-primary" id="btnSaveWs">إنشاء المساحة</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Edit Join Code -->
+<div class="overlay" id="modalEditCode">
+  <div class="modal">
+    <div class="modal-head"><h3>✏️ تعديل كود انضمام المساحة</h3><button class="icon-btn" data-close="modalEditCode">✕</button></div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label>الكود الجديد *</label>
+        <input class="input" id="newJoinCodeInput" placeholder="مثال: FAMILY-2026" style="text-transform:uppercase;font-family:'Cairo';font-weight:800;font-size:16px;">
+      </div>
+      <p class="muted" style="font-size:12px;">سيتمكن الأفراد من إرسال طلبات الانضمام بهذه المساحة باستخدام هذا الكود الجديد.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close="modalEditCode">إلغاء</button>
+      <button class="btn btn-primary" id="btnSaveNewCode">حفظ الكود الجديد</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Join Workspace by Code -->
+<div class="overlay" id="modalJoinWs">
+  <div class="modal">
+    <div class="modal-head"><h3>🔗 الانضمام إلى مساحة بكود</h3><button class="icon-btn" data-close="modalJoinWs">✕</button></div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label>كود الانضمام *</label>
+        <input class="input" id="joinCodeInput" placeholder="مثال: FAM-AHMED" style="text-transform:uppercase;font-family:'Cairo';font-weight:800;font-size:16px;">
+      </div>
+      <p class="muted" style="font-size:12px;">سيتم إرسال طلب الانضمام إلى مالك المساحة للموافقة عليه وتحديد صلاحيتك.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close="modalJoinWs">إلغاء</button>
+      <button class="btn btn-primary" id="btnSubmitJoinCode">إرسال طلب الانضمام</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Super Admin Add User -->
+<div class="overlay" id="modalSaAddUser">
+  <div class="modal">
+    <div class="modal-head"><h3>➕ إضافة مستخدم جديد (سوبر أدمن)</h3><button class="icon-btn" data-close="modalSaAddUser">✕</button></div>
+    <div class="modal-body">
+      <div class="field-group"><label>الاسم الكامل *</label><input class="input" id="saAddName" placeholder="مثال: علي حسن"></div>
+      <div class="field-group"><label>البريد الإلكتروني *</label><input class="input" id="saAddEmail" placeholder="ali@example.com"></div>
+      <div class="field-group"><label>كلمة المرور *</label><input class="input" id="saAddPassword" type="password" placeholder="••••••••"></div>
+      <div class="field-group"><label>الدور / الرتبة العامة</label>
+        <select class="select" id="saAddRole">
+          <option value="user">مستخدم عادى (User)</option>
+          <option value="super_admin">سوبر أدمن (Super Admin)</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close="modalSaAddUser">إلغاء</button>
+      <button class="btn btn-primary" id="btnSaSaveAddUser">إنشاء الحساب</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Super Admin Edit User -->
+<div class="overlay" id="modalSaEditUser">
+  <div class="modal">
+    <div class="modal-head"><h3>✏️ تعديل بيانات ورتبة المستخدم</h3><button class="icon-btn" data-close="modalSaEditUser">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="saEditUserId">
+      <div class="field-group"><label>اسم المستخدم الكامل *</label><input class="input" id="saEditName"></div>
+      <div class="field-group"><label>البريد الإلكتروني *</label><input class="input" id="saEditEmail"></div>
+      <div class="two-col">
+        <div class="field-group"><label>الرتبة العامة</label>
+          <select class="select" id="saEditRole">
+            <option value="user">مستخدم عادي</option>
+            <option value="super_admin">سوبر أدمن</option>
+          </select>
+        </div>
+        <div class="field-group"><label>حالة الحساب</label>
+          <select class="select" id="saEditStatus">
+            <option value="active">نشط 🟢</option>
+            <option value="suspended">معلّق 🔴</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close="modalSaEditUser">إلغاء</button>
+      <button class="btn btn-primary" id="btnSaSaveEditUser">حفظ التغييرات</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Super Admin Reset Password -->
+<div class="overlay" id="modalSaResetPass">
+  <div class="modal">
+    <div class="modal-head"><h3>🔑 تغيير كلمة سر المستخدم</h3><button class="icon-btn" data-close="modalSaResetPass">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="saResetUserId">
+      <p style="font-weight:700;font-size:13.5px;" id="saResetUserText">تغيير كلمة السر للمستخدم</p>
+      <div class="field-group"><label>كلمة المرور الجديدة *</label><input class="input" id="saResetPassInput" type="password" placeholder="••••••••"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close="modalSaResetPass">إلغاء</button>
+      <button class="btn btn-primary" id="btnSaSaveResetPass">تحديث كلمة السر</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Super Admin View User Workspaces -->
+<div class="overlay" id="modalSaUserWorkspaces">
+  <div class="modal" style="max-width:540px;">
+    <div class="modal-head"><h3 id="saUserWsModalTitle">👁️ المساحات المرتبطة بالمستخدم</h3><button class="icon-btn" data-close="modalSaUserWorkspaces">✕</button></div>
+    <div class="modal-body" id="saUserWsModalBody">
+      <p class="muted">جاري تحميل مساحات المستخدم...</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close="modalSaUserWorkspaces">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Edit Workspace Member Permissions & Personal Budget -->
+<div class="overlay" id="modalEditMemberPermissions">
+  <div class="modal">
+    <div class="modal-head"><h3 id="editMemberModalTitle">⚙️ تعديل ميزانية وصلاحيات العضو</h3><button class="icon-btn" data-close="modalEditMemberPermissions">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="editMemberId">
+      <div class="field-group">
+        <label>رتبة العضو في المساحة</label>
+        <select class="select" id="editMemberRole">
+          <option value="member">عضو (تسجيل وتصفح)</option>
+          <option value="admin">مشرف المساحة (Admin)</option>
+          <option value="viewer">مشاهد فقط (Viewer)</option>
+        </select>
+      </div>
+      <div class="field-group" style="margin-top:12px;">
+        <label>الحد الأقصى للمصروفات / الميزانية الشهرية المخصصة لهذا الفرد (ج.م)</label>
+        <input class="input" type="number" id="editMemberLimit" placeholder="0 = لا يوجد حد أقصى (مفتوح)" style="font-family:'Cairo';font-weight:700;">
+        <p class="muted" style="font-size:11.5px;margin-top:4px;">حدد الميزانية المسموح بها لهذا الفرد شهرياً داخل هذه المساحة.</p>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close="modalEditMemberPermissions">إلغاء</button>
+      <button class="btn btn-primary" id="btnSaveMemberPermissions">حفظ الميزانية والصلاحيات</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Request Fund / Expense Approval from Family Head -->
+<div class="overlay" id="modalRequestFund">
+  <div class="modal">
+    <div class="modal-head"><h3>💸 طلب مصروف / تمويل من رب الأسرة</h3><button class="icon-btn" data-close="modalRequestFund">✕</button></div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label>عنوان / سبب طلب التمويل *</label>
+        <input class="input" id="fundTitleInput" placeholder="مثال: شراء كتب دراسية أو مستلزمات طبية">
+      </div>
+      <div class="two-col" style="margin-top:12px;">
+        <div class="field-group">
+          <label>المبلغ المطلوب (ج.م) *</label>
+          <input class="input" type="number" id="fundAmountInput" placeholder="500" style="font-family:'Cairo';font-weight:700;">
+        </div>
+        <div class="field-group">
+          <label>الفئة</label>
+          <select class="select" id="fundCategorySelect"></select>
+        </div>
+      </div>
+      <div class="field-group" style="margin-top:12px;">
+        <label>ملاحظات إضافية لرب الأسرة</label>
+        <input class="input" id="fundNoteInput" placeholder="اكتب تفاصيل أو ملاحظة لمالك المساحة">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close="modalRequestFund">إلغاء</button>
+      <button class="btn btn-primary" id="btnSubmitFundRequest">إرسال الطلب لمالك الأسرة 🚀</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Manage Recurring Bills & Scheduled Payments -->
+<div class="overlay" id="modalRecurringBills">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-head"><h3>📅 جدولة وتذكير الفواتير والالتزامات الدورية</h3><button class="icon-btn" data-close="modalRecurringBills">✕</button></div>
+    <div class="modal-body">
+      <div style="background:var(--bg-sec);padding:14px;border-radius:10px;margin-bottom:14px;">
+        <h4 style="margin-0 0 10px;font-size:14px;">إضافة فاتورة شهري جديدة</h4>
+        <div class="two-col">
+          <div class="field-group">
+            <label>اسم الفاتورة *</label>
+            <input class="input" id="recBillTitle" placeholder="مثال: فاتورة الكهرباء أو النت">
+          </div>
+          <div class="field-group">
+            <label>المبلغ (ج.م) *</label>
+            <input class="input" type="number" id="recBillAmount" placeholder="350">
+          </div>
+        </div>
+        <div class="two-col" style="margin-top:10px;">
+          <div class="field-group">
+            <label>يوم الاستحقاق الشهري (1-31) *</label>
+            <input class="input" type="number" id="recBillDueDay" placeholder="5" min="1" max="31">
+          </div>
+          <div class="field-group">
+            <label>الفئة المرتبطة</label>
+            <select class="select" id="recBillCategorySelect"></select>
+          </div>
+        </div>
+        <div class="field-group" style="margin-top:10px;">
+          <label>خصم الفاتورة عند السداد من حساب *</label>
+          <select class="select" id="recBillAccountSelect"></select>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="addRecurringBill()" style="margin-top:12px;width:100%;justify-content:center;">حفظ وجدولة الفاتورة ➕</button>
+      </div>
+
+      <h4>الفواتير الدورية المجدولة بالأسرة</h4>
+      <div id="recurringBillsListModal" style="margin-top:10px;max-height:220px;overflow-y:auto;"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close="modalRecurringBills">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================================
+// 1. SYSTEM STATE & API CLIENT (النظام الأساسي والعميل)
+// ============================================================================
+const API_BASE = '';
+
+async function apiFetch(endpoint, options = {}) {
+  const token = localStorage.getItem('mahfaza_token');
+  const headers = { 'Content-Type': 'application/json', ...options.headers };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  try {
+    const res = await fetch(API_BASE + endpoint, { ...options, headers });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'حدث خطأ في الخادم');
+    return data;
+  } catch (err) {
+    console.error('API Error:', err);
+    throw err;
+  }
+}
+
+const State = {
+  user: null,
+  workspaces: [],
+  currentWsId: null,
+  accounts: [],
+  categories: [],
+  transactions: [],
+  favorites: [],
+  budgets: [],
+  tags: [],
+  settings: {},
+};
+
+const DB = {
+  async init() {
+    const res = await apiFetch('/api/auth/me');
+    State.user = res.user;
+    State.workspaces = res.workspaces || [];
+    if (isSuperAdmin()) return;
+
+    const shared = State.workspaces.find(w => w.type === 'shared');
+    if (!State.currentWsId || !State.workspaces.some(w => w.id === State.currentWsId)) {
+      State.currentWsId = shared ? shared.id : State.workspaces[0]?.id;
+    }
+    await this.loadWorkspaceData();
+  },
+  async loadWorkspaceData() {
+    if (isSuperAdmin()) return;
+    if (!State.currentWsId) return;
+    const ws = State.workspaces.find(w => w.id === State.currentWsId);
+    if (ws && ws.my_membership_status === 'pending') {
+      State.accounts = [];
+      State.categories = [];
+      State.transactions = [];
+      State.favorites = [];
+      State.budgets = [];
+      State.tags = [];
+      return;
+    }
+    const wsId = State.currentWsId;
+    const [accs, cats, txs, favs, buds, tgs, sets] = await Promise.all([
+      apiFetch(`/api/accounts?workspace_id=${wsId}`),
+      apiFetch(`/api/categories?workspace_id=${wsId}`),
+      apiFetch(`/api/transactions?workspace_id=${wsId}`),
+      apiFetch('/api/favorites'),
+      apiFetch(`/api/budgets?workspace_id=${wsId}`),
+      apiFetch(`/api/tags?workspace_id=${wsId}`),
+      apiFetch('/api/settings'),
+    ]);
+    State.accounts = accs;
+    State.categories = cats;
+    State.transactions = txs;
+    State.favorites = favs;
+    State.budgets = buds;
+    State.tags = tgs;
+    State.settings = sets;
+  },
+  getAll(table) { return State[table] || []; },
+  getById(table, id) { return (State[table] || []).find(r => r.id === id); },
+  async insert(table, data) {
+    const res = await apiFetch(`/api/${table}`, { method: 'POST', body: JSON.stringify(data) });
+    await this.loadWorkspaceData();
+    return res;
+  },
+  async update(table, id, data) {
+    const res = await apiFetch(`/api/${table}/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    await this.loadWorkspaceData();
+    return res;
+  },
+  async delete(table, id) {
+    const res = await apiFetch(`/api/${table}/${id}`, { method: 'DELETE' });
+    await this.loadWorkspaceData();
+    return res;
+  },
+  async toggleFavorite(txId) {
+    const res = await apiFetch(`/api/transactions/${txId}/favorite`, { method: 'PUT' });
+    await this.loadWorkspaceData();
+    return res;
+  }
+};
+
+const Session = {
+  isLoggedIn() { return !!localStorage.getItem('mahfaza_token'); },
+  currentWorkspaceId() { return State.currentWsId; },
+  setWorkspace(wsId) { State.currentWsId = wsId; },
+  clear() { localStorage.removeItem('mahfaza_token'); State.user = null; }
+};
+
+function currentUser() { return State.user; }
+function currentWorkspace() { return State.workspaces.find(w => w.id === State.currentWsId); }
+function isSuperAdmin() { return State.user?.global_role === 'super_admin'; }
+
+function isOwner() {
+  if (isSuperAdmin()) return true;
+  const ws = currentWorkspace();
+  return ws && (ws.owner_id === currentUser()?.id || ws.my_role === 'owner');
+}
+window.isOwner = isOwner;
+
+function canManage() {
+  if (isSuperAdmin()) return true;
+  const ws = currentWorkspace();
+  return ws && (ws.my_role === 'owner' || ws.my_role === 'admin');
+}
+
+const ROLE_LABELS = { owner: 'مالك', admin: 'مسؤول', member: 'عضو', viewer: 'مشاهد', super_admin: 'سوبر أدمن', user: 'مستخدم' };
+
+function renderAvatarElement(el, avatarUrl, name) {
+  if (!el) return;
+  if (avatarUrl) {
+    el.innerHTML = `<img src="${avatarUrl}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+  } else {
+    const initial = (name || 'م').trim().charAt(0).toUpperCase();
+    el.innerHTML = `<span style="font-weight:700;font-size:14px;">${initial}</span>`;
+  }
+}
+window.renderAvatarElement = renderAvatarElement;
+
+function fmtMoney(amt) {
+  return (parseFloat(amt) || 0).toLocaleString('ar-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ج.م';
+}
+function fmtDate(dStr) { return dStr ? dStr.slice(0, 10) : ''; }
+function toast(msg, type = 'info') {
+  const stack = document.getElementById('toastStack');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  stack.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+function openModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+  else console.error('Modal not found:', id);
+}
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('active');
+}
+window.openModal = openModal;
+window.closeModal = closeModal;
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeModal(b.dataset.close)));
+
+function fillSelect(sel, list, { valKey = 'id', labelFn = x => x.name, placeholder = '' } = {}) {
+  sel.innerHTML = (placeholder ? `<option value="">${placeholder}</option>` : '') +
+    list.map(x => `<option value="${x[valKey]}">${labelFn(x)}</option>`).join('');
+}
+
+function normalizeArabicDigits(str) {
+  if (!str) return '';
+  return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+}
+
+// FIX AUTH TAB SWITCHING (Login vs Signup vs CodeJoin)
+function switchAuthTab(tab) {
+  const isLogin = tab === 'login';
+  const isSignup = tab === 'signup';
+  const isCodeJoin = tab === 'codeJoin';
+
+  document.getElementById('tabAuthLogin')?.classList.toggle('on', isLogin);
+  document.getElementById('tabAuthSignup')?.classList.toggle('on', isSignup);
+  document.getElementById('tabAuthCodeJoin')?.classList.toggle('on', isCodeJoin);
+
+  if (document.getElementById('authPaneLogin')) {
+    document.getElementById('authPaneLogin').style.setProperty('display', isLogin ? 'block' : 'none', 'important');
+  }
+
+  if (document.getElementById('authPaneSignup')) {
+    document.getElementById('authPaneSignup').style.setProperty('display', isSignup ? 'block' : 'none', 'important');
+  }
+
+  if (document.getElementById('authPaneCodeJoin')) {
+    document.getElementById('authPaneCodeJoin').style.setProperty('display', isCodeJoin ? 'block' : 'none', 'important');
+  }
+
+  const note = document.getElementById('authNote');
+  if (note) note.textContent = '';
+}
+window.switchAuthTab = switchAuthTab;
+
+async function doCodeJoin() {
+  const join_code = document.getElementById('codeJoinCode')?.value.trim();
+  const name = document.getElementById('codeJoinName')?.value.trim();
+  const passwordRaw = document.getElementById('codeJoinPass')?.value;
+  const username = document.getElementById('codeJoinUsername')?.value.trim();
+  const note = document.getElementById('authNote');
+
+  const password = passwordRaw ? normalizeArabicDigits(passwordRaw) : '';
+
+  if (!join_code || !name || !password) {
+    if (note) note.textContent = 'يرجى إدخال كود الدعوة، واسمك الكامل، وكلمة السر (*)';
+    return;
+  }
+
+  try {
+    const res = await apiFetch('/api/auth/join-by-code', {
+      method: 'POST',
+      body: JSON.stringify({ join_code, name, password, username })
+    });
+    localStorage.setItem('mahfaza_token', res.token);
+    if (note) note.textContent = '';
+    await enterApp();
+    toast(`تم الانضمام بنجاح لمساحة ${res.workspace?.name || ''}، مرحباً بك يا ${res.user?.name || name}`, 'success');
+  } catch (err) {
+    if (note) note.textContent = err.message || 'فشل الانضمام السريع بكود الدعوة';
+  }
+}
+window.doCodeJoin = doCodeJoin;
+
+async function quickDemoLogin(demoUserId, email) {
+  const note = document.getElementById('authNote');
+  try {
+    const res = await apiFetch('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ demoUserId, email })
+    });
+    localStorage.setItem('mahfaza_token', res.token);
+    if (note) note.textContent = '';
+    await enterApp();
+    toast(`مرحباً بك مجدداً يا ${res.user.name}`, 'success');
+  } catch (err) {
+    if (note) note.textContent = err.message || 'تعذر الدخول بالحساب التجريبي';
+  }
+}
+window.quickDemoLogin = quickDemoLogin;
+
+async function doLogin() {
+  const emailRaw = document.getElementById('loginEmail')?.value.trim();
+  const passwordRaw = document.getElementById('loginPass')?.value;
+  const note = document.getElementById('authNote');
+
+  const email = emailRaw ? emailRaw.toLowerCase() : '';
+  const password = passwordRaw ? normalizeArabicDigits(passwordRaw) : '';
+
+  if (!email || !password) {
+    if (note) note.textContent = 'يرجى إدخال البريد الإلكتروني وكلمة المرور';
+    return;
+  }
+
+  try {
+    const res = await apiFetch('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password })
+    });
+    localStorage.setItem('mahfaza_token', res.token);
+    if (note) note.textContent = '';
+    await enterApp();
+    toast(`مرحباً بك مجدداً يا ${res.user.name}`, 'success');
+  } catch (err) {
+    if (note) note.textContent = err.message || 'فشل تسجيل الدخول، يرجى التأكد من البيانات';
+  }
+}
+window.doLogin = doLogin;
+
+async function doSignup() {
+  const name = document.getElementById('signupName')?.value.trim();
+  const emailRaw = document.getElementById('signupEmail')?.value.trim();
+  const passwordRaw = document.getElementById('signupPass')?.value;
+  const note = document.getElementById('authNote');
+
+  const email = emailRaw ? emailRaw.toLowerCase() : '';
+  const password = passwordRaw ? normalizeArabicDigits(passwordRaw) : '';
+
+  if (!name || !email || !password) {
+    if (note) note.textContent = 'يرجى ملء جميع الحقول المطلوبة (*)';
+    return;
+  }
+
+  try {
+    const res = await apiFetch('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ name, email, password })
+    });
+    localStorage.setItem('mahfaza_token', res.token);
+    if (note) note.textContent = '';
+    await enterApp();
+    toast(`تم إنشاء الحساب ومرحباً بك يا ${res.user?.name || name}`, 'success');
+  } catch (err) {
+    if (note) note.textContent = err.message || 'فشل إنشاء الحساب';
+  }
+}
+window.doSignup = doSignup;
+
+// SIDEBAR TOGGLE & COLLAPSE FLEXIBILITY
+document.getElementById('btnToggleSidebar').addEventListener('click', () => {
+  const sidebar = document.getElementById('sidebar');
+  if (window.innerWidth <= 768) {
+    sidebar.classList.toggle('mobile-open');
+  } else {
+    sidebar.classList.toggle('collapsed');
+    localStorage.setItem('mahfaza_sidebar_collapsed', sidebar.classList.contains('collapsed') ? '1' : '0');
+  }
+});
+
+// DARK MODE SYSTEM
+function setTheme(theme) {
+  if (theme === 'dark') {
+    document.body.setAttribute('data-theme', 'dark');
+    document.getElementById('btnThemeToggle').textContent = '☀️';
+  } else {
+    document.body.removeAttribute('data-theme');
+    document.getElementById('btnThemeToggle').textContent = '🌙';
+  }
+  localStorage.setItem('mahfaza_theme', theme);
+}
+
+document.getElementById('btnThemeToggle').addEventListener('click', () => {
+  const currentTheme = document.body.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+});
+
+// QUICK ADD POPOVER SYSTEM
+document.getElementById('btnQuickAdd').addEventListener('click', e => {
+  e.stopPropagation();
+  document.getElementById('quickAddMenu').classList.toggle('open');
+});
+document.addEventListener('click', () => document.getElementById('quickAddMenu').classList.remove('open'));
+
+let currentView = 'dashboard';
+function buildNav() {
+  let items = [];
+  if (isSuperAdmin()) {
+    items = [
+      { id: 'admin_overview', icon: '🛡️', label: 'لوحة التحكم بالنظام' },
+      { id: 'admin_users', icon: '👥', label: 'إدارة المستخدمين' },
+      { id: 'admin_workspaces', icon: '🗂️', label: 'المساحات والحسابات' },
+      { id: 'admin_transactions', icon: '🧾', label: 'رقابة المعاملات الشاملة' },
+      { id: 'admin_audit', icon: '📝', label: 'سجل الأمان والنشاط' },
+      { id: 'settings', icon: '⚙️', label: 'إعدادات المنصة' },
+    ];
+  } else {
+    items = [
+      { id: 'dashboard', icon: '📊', label: 'لوحة التحكم' },
+      { id: 'transactions', icon: '🧾', label: 'المعاملات' },
+      { id: 'favorites', icon: '❤️', label: 'المفضلة' },
+      { id: 'accounts', icon: '🏦', label: 'الحسابات' },
+      { id: 'categories', icon: '📂', label: 'الفئات' },
+      { id: 'budgets', icon: '💵', label: 'الميزانيات' },
+      { id: 'tags', icon: '🏷️', label: 'الوسوم' },
+      { id: 'reports', icon: '📈', label: 'التقارير' },
+      { id: 'team', icon: '👥', label: 'الفريق والأسرة' },
+      { id: 'audit_log', icon: '📜', label: 'سجل الأنشطة' },
+      { id: 'settings', icon: '⚙️', label: 'الإعدادات' },
+    ];
+  }
+
+  document.getElementById('navList').innerHTML = items.map(i => `
+    <button class="nav-item ${i.id === currentView ? 'active' : ''}" data-nav="${i.id}" title="${i.label}">
+      <div class="nav-bubble">${i.icon}</div><span class="nav-item-text">${i.label}</span>
+    </button>
+  `).join('');
+
+  document.querySelectorAll('[data-nav]').forEach(b => b.addEventListener('click', () => goTo(b.dataset.nav)));
+}
+
+async function goTo(view) {
+  currentView = view;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + view)?.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.nav === view));
+  if (view === 'audit_log') {
+    await renderAuditLogView();
+  } else {
+    await renderAll();
+  }
+}
+
+async function renderAdminOverview() {
+  const overview = await apiFetch('/api/admin/overview');
+  const kpis = [
+    { label: 'إجمالي المستخدمين', value: overview.usersCount, icon: '👥', bg: 'var(--primary-soft)', fg: 'var(--primary)' },
+    { label: 'إجمالي المساحات', value: overview.workspacesCount, icon: '🗂️', bg: 'var(--blue-soft)', fg: 'var(--blue)' },
+    { label: 'حجم الأموال بالنظام', value: fmtMoney(overview.totalBalance), icon: '💰', bg: 'var(--warning-soft)', fg: 'var(--warning)' },
+    { label: 'إجمالي المعاملات المسجلة', value: overview.totalTxs, icon: '🧾', bg: 'var(--surface-alt)', fg: 'var(--ink-soft)' },
+  ];
+  document.getElementById('superAdminKpis').innerHTML = kpis.map(k => `
+    <div class="card stat-card hoverable">
+      <div class="stat-top"><div><div class="stat-label">${k.label}</div><div class="stat-value">${k.value}</div></div>
+      <div class="stat-badge" style="background:${k.bg};color:${k.fg};font-size:20px;">${k.icon}</div></div>
+    </div>
+  `).join('');
+
+  const users = await apiFetch('/api/admin/users');
+  document.getElementById('saUsersBody').innerHTML = users.slice(0, 5).map(u => `
+    <tr>
+      <td><b>${u.name}</b></td>
+      <td class="muted">${u.email}</td>
+      <td><span class="role-badge role-${u.global_role}">${ROLE_LABELS[u.global_role]}</span></td>
+      <td><span class="status-dot status-${u.status}"></span> ${u.status === 'active' ? 'نشط' : 'معلّق'}</td>
+      <td>
+        ${u.global_role !== 'super_admin' ? `<button class="btn btn-outline btn-sm" onclick="toggleUserStatus('${u.id}', '${u.status}')">${u.status === 'active' ? 'تعليق' : 'تفعيل'}</button>` : ''}
+      </td>
+    </tr>
+  `).join('');
+
+  const ws = await apiFetch('/api/admin/all-workspaces');
+  document.getElementById('saWorkspacesBody').innerHTML = ws.slice(0, 5).map(w => `
+    <tr>
+      <td><b>${w.name}</b></td>
+      <td><span class="chip ${w.type === 'shared' ? 'chip-neutral' : 'chip-income'}">${w.type === 'shared' ? 'مشتركة' : 'شخصية'}</span></td>
+      <td>${w.owner_name}</td>
+      <td>${w.members_count} أعضاء</td>
+    </tr>
+  `).join('');
+}
+
+let currentAdminUsers = [];
+
+async function renderAdminUsers() {
+  currentAdminUsers = await apiFetch('/api/admin/users');
+  document.getElementById('saFullUsersBody').innerHTML = currentAdminUsers.map(u => {
+    const isSelf = u.id === currentUser()?.id;
+    return `
+      <tr>
+        <td><b>${u.name}</b></td>
+        <td class="muted">${u.email}</td>
+        <td><span class="role-badge role-${u.global_role}">${ROLE_LABELS[u.global_role] || u.global_role}</span></td>
+        <td><span class="status-dot status-${u.status}"></span> ${u.status === 'active' ? 'نشط' : 'معلّق'}</td>
+        <td class="muted">${fmtDate(u.created_at)}</td>
+        <td>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;">
+            <button class="btn btn-outline btn-sm" onclick="openSaEditUser('${u.id}')">✏️ تعديل</button>
+            <button class="btn btn-outline btn-sm" onclick="openSaResetPass('${u.id}')">🔑 السر</button>
+            <button class="btn btn-outline btn-sm" onclick="openSaUserWorkspaces('${u.id}')">👁️ المساحات</button>
+            ${!isSelf ? `
+              <button class="btn btn-outline btn-sm" onclick="toggleUserStatus('${u.id}', '${u.status}')">${u.status === 'active' ? 'تعليق' : 'تفعيل'}</button>
+              <button class="btn btn-danger-ghost btn-sm" onclick="deleteUserByAdmin('${u.id}')">🗑️ حذف</button>
+            ` : '<span class="muted" style="font-size:11px;">(حسابك)</span>'}
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// SUPER ADMIN USER MANAGEMENT HANDLERS
+document.getElementById('btnSaSaveAddUser')?.addEventListener('click', async () => {
+  const name = document.getElementById('saAddName').value.trim();
+  const email = document.getElementById('saAddEmail').value.trim();
+  const password = document.getElementById('saAddPassword').value;
+  const global_role = document.getElementById('saAddRole').value;
+
+  if (!name || !email || !password) return toast('اسم المستخدم والبريد وكلمة السر مطلوبة', 'error');
+  try {
+    await apiFetch('/api/admin/users', { method: 'POST', body: JSON.stringify({ name, email, password, global_role }) });
+    closeModal('modalSaAddUser');
+    document.getElementById('saAddName').value = '';
+    document.getElementById('saAddEmail').value = '';
+    document.getElementById('saAddPassword').value = '';
+    toast('تم إنشاء الحساب بنجاح بواسطة السوبر أدمن', 'success');
+    await renderAdminUsers();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+});
+
+function openSaEditUser(id) {
+  const u = currentAdminUsers.find(x => x.id === id);
+  if (!u) return;
+  document.getElementById('saEditUserId').value = u.id;
+  document.getElementById('saEditName').value = u.name;
+  document.getElementById('saEditEmail').value = u.email;
+  document.getElementById('saEditRole').value = u.global_role;
+  document.getElementById('saEditStatus').value = u.status;
+  openModal('modalSaEditUser');
+}
+window.openSaEditUser = openSaEditUser;
+
+document.getElementById('btnSaSaveEditUser')?.addEventListener('click', async () => {
+  const id = document.getElementById('saEditUserId').value;
+  const name = document.getElementById('saEditName').value.trim();
+  const email = document.getElementById('saEditEmail').value.trim();
+  const global_role = document.getElementById('saEditRole').value;
+  const status = document.getElementById('saEditStatus').value;
+
+  if (!name || !email) return toast('اسم المستخدم والبريد إجباريان', 'error');
+  try {
+    await apiFetch(`/api/admin/users/${id}`, { method: 'PUT', body: JSON.stringify({ name, email, global_role, status }) });
+    closeModal('modalSaEditUser');
+    toast('تم تحديث بيانات ورتبة المستخدم بنجاح', 'success');
+    await renderAdminUsers();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+});
+
+function openSaResetPass(id) {
+  const u = currentAdminUsers.find(x => x.id === id);
+  if (!u) return;
+  document.getElementById('saResetUserId').value = u.id;
+  document.getElementById('saResetUserText').textContent = `إعادة تعيين كلمة السر لـ: ${u.name}`;
+  document.getElementById('saResetPassInput').value = '';
+  openModal('modalSaResetPass');
+}
+window.openSaResetPass = openSaResetPass;
+
+document.getElementById('btnSaSaveResetPass')?.addEventListener('click', async () => {
+  const id = document.getElementById('saResetUserId').value;
+  const password = document.getElementById('saResetPassInput').value;
+  if (!password) return toast('ادخل كلمة السر الجديدة', 'error');
+  try {
+    await apiFetch(`/api/admin/users/${id}/password`, { method: 'PUT', body: JSON.stringify({ password }) });
+    closeModal('modalSaResetPass');
+    toast('تم تغيير كلمة السر بنجاح', 'success');
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+});
+
+async function openSaUserWorkspaces(id) {
+  const u = currentAdminUsers.find(x => x.id === id);
+  document.getElementById('saUserWsModalTitle').textContent = `👁️ المساحات التابعة لـ: ${u ? u.name : ''}`;
+  openModal('modalSaUserWorkspaces');
+  try {
+    const wsList = await apiFetch(`/api/admin/users/${id}/workspaces`);
+    document.getElementById('saUserWsModalBody').innerHTML = wsList.length ? wsList.map(w => `
+      <div class="row-item" style="padding:10px;border-bottom:1px solid var(--line);">
+        <div class="bubble sm" style="background:var(--grad);color:#fff;">${w.icon || '🏠'}</div>
+        <div class="row-info">
+          <div class="row-title"><b>${w.name}</b></div>
+          <div class="row-sub">نوع: ${w.type === 'shared' ? 'مشتركة' : 'شخصية'} · كود: ${w.join_code}</div>
+        </div>
+        <span class="role-badge role-${w.my_role}">${ROLE_LABELS[w.my_role] || w.my_role}</span>
+      </div>
+    `).join('') : '<p class="muted">لا توجد مساحات مسجلة لهذا المستخدم</p>';
+  } catch (e) {
+    document.getElementById('saUserWsModalBody').innerHTML = `<p style="color:var(--danger);">${e.message}</p>`;
+  }
+}
+window.openSaUserWorkspaces = openSaUserWorkspaces;
+
+async function deleteUserByAdmin(id) {
+  const u = currentAdminUsers.find(x => x.id === id);
+  const name = u ? u.name : 'المستخدم';
+  if (!confirm(`هل أنت متأكد من حذف المستخدم "${name}" تماماً من قاعدة البيانات؟`)) return;
+  try {
+    await apiFetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+    toast(`تم حذف المستخدم ${name} بنجاح`, 'info');
+    await renderAdminUsers();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+window.deleteUserByAdmin = deleteUserByAdmin;
+
+function downloadDbBackup() {
+  const token = localStorage.getItem('mahfaza_token');
+  const a = document.createElement('a');
+  a.href = `/api/admin/backup?token=${token}`;
+  a.download = `database_backup_${new Date().toISOString().slice(0,10)}.sqlite`;
+  a.click();
+  toast('جاري تحميل النسخة الاحتياطية لقاعدة البيانات SQLite...', 'success');
+}
+window.downloadDbBackup = downloadDbBackup;
+
+async function renderAdminWorkspaces() {
+  const ws = await apiFetch('/api/admin/all-workspaces');
+  document.getElementById('saFullWorkspacesBody').innerHTML = ws.map(w => `
+    <tr>
+      <td><b>${w.name}</b></td>
+      <td><span class="chip ${w.type === 'shared' ? 'chip-neutral' : 'chip-income'}">${w.type === 'shared' ? 'مشتركة' : 'شخصية'}</span></td>
+      <td>${w.owner_name} (${w.owner_email})</td>
+      <td>${w.members_count} أعضاء</td>
+      <td class="muted">${fmtDate(w.created_at)}</td>
+    </tr>
+  `).join('');
+}
+
+async function renderAdminTransactions() {
+  const txs = await apiFetch('/api/admin/all-transactions');
+  document.getElementById('saTxBody').innerHTML = txs.map(t => `
+    <tr>
+      <td><b>${t.note || t.category_name || 'معاملة'}</b></td>
+      <td><span class="chip chip-neutral">${t.workspace_name}</span></td>
+      <td>${t.category_icon || ''} ${t.category_name || '—'}</td>
+      <td>${t.account_name || '—'}</td>
+      <td class="muted">${t.creator_name || '—'}</td>
+      <td class="muted">${fmtDate(t.date)}</td>
+      <td class="${t.type === 'income' ? 'amount-in' : 'amount-out'}" style="font-weight:800;font-family:'Cairo';">
+        ${t.type === 'income' ? '+' : '-'}${fmtMoney(t.amount)}
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function renderAdminAudit() {
+  const logs = await apiFetch('/api/admin/audit-log');
+  document.getElementById('saAuditList').innerHTML = logs.map(l => `
+    <div class="row-item">
+      <div class="bubble sm" style="background:var(--blue-soft);color:var(--blue);">📝</div>
+      <div class="row-info">
+        <div class="row-title">${l.actor_name || 'مستخدم'} — ${l.action}</div>
+        <div class="row-sub">${l.target || ''} ${l.meta ? '· ' + l.meta : ''}</div>
+      </div>
+      <div class="muted" style="font-size:11px;">${fmtDate(l.created_at)}</div>
+    </div>
+  `).join('');
+}
+
+async function toggleUserStatus(userId, currentStatus) {
+  const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
+  await apiFetch(`/api/admin/users/${userId}/status`, { method: 'PUT', body: JSON.stringify({ status: newStatus }) });
+  toast('تم تحديث حالة المستخدم بنجاح', 'success');
+  await renderAll();
+}
+window.toggleUserStatus = toggleUserStatus;
+
+function exportFinancialReport() {
+  window.print();
+}
+window.exportFinancialReport = exportFinancialReport;
+
+function renderSvgCashFlowChart(monthlyData) {
+  const width = 460;
+  const height = 170;
+  const padding = 25;
+  const maxVal = Math.max(...monthlyData.map(m => Math.max(m.inc, m.exp)), 1);
+  const barW = 20;
+  const step = (width - padding * 2) / monthlyData.length;
+
+  let svg = `<svg viewBox="0 0 ${width} ${height}" style="width:100%;height:auto;overflow:visible;">`;
+  
+  // Gridlines
+  [0.2, 0.6, 1].forEach(r => {
+    const y = height - padding - r * (height - padding * 2);
+    svg += `<line x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}" stroke="var(--line)" stroke-dasharray="3 3" stroke-width="1"/>`;
+  });
+
+  monthlyData.forEach((m, i) => {
+    const cx = padding + i * step + step / 2;
+    const incH = Math.max(4, (m.inc / maxVal) * (height - padding * 2));
+    const expH = Math.max(4, (m.exp / maxVal) * (height - padding * 2));
+    const incY = height - padding - incH;
+    const expY = height - padding - expH;
+
+    // Inc Bar
+    svg += `<rect x="${cx - barW - 2}" y="${incY}" width="${barW}" height="${incH}" rx="5" fill="var(--primary)" opacity="0.95"><title>${m.month} - إيرادات: ${fmtMoney(m.inc)}</title></rect>`;
+    // Exp Bar
+    svg += `<rect x="${cx + 2}" y="${expY}" width="${barW}" height="${expH}" rx="5" fill="var(--danger)" opacity="0.95"><title>${m.month} - مصروفات: ${fmtMoney(m.exp)}</title></rect>`;
+    // Month label
+    svg += `<text x="${cx}" y="${height - 6}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink-soft)">${m.month}</text>`;
+  });
+
+  svg += `</svg>`;
+  return svg + `
+    <div style="display:flex;gap:16px;justify-content:center;margin-top:10px;font-size:11.5px;font-weight:700;">
+      <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;background:var(--primary);border-radius:3px;"></span> إيرادات</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;background:var(--danger);border-radius:3px;"></span> مصروفات</span>
+    </div>
+  `;
+}
+
+function renderSvgDonutChart(membersData) {
+  const total = membersData.reduce((s, m) => s + m.value, 0) || 1;
+  const colors = ['#22c55e', '#ef4444', '#3b82f6', '#a855f7', '#f59e0b'];
+  
+  let cumulativeAngle = 0;
+  let pathsHtml = '';
+
+  membersData.forEach((m, idx) => {
+    const pct = m.value / total;
+    const color = colors[idx % colors.length];
+    const r = 38;
+    const c = 2 * Math.PI * r;
+    const dash = pct * c;
+    const gap = c - dash;
+    const offset = (cumulativeAngle / 360) * c;
+
+    pathsHtml += `
+      <circle cx="55" cy="55" r="${r}" fill="none" stroke="${color}" stroke-width="14"
+              stroke-dasharray="${dash} ${gap}" stroke-dashoffset="-${offset}"
+              transform="rotate(-90 55 55)" style="transition:all .3s var(--ease);">
+        <title>${m.name}: ${fmtMoney(m.value)} (${Math.round(pct*100)}%)</title>
+      </circle>
+    `;
+    cumulativeAngle += pct * 360;
+  });
+
+  let legendHtml = '<div style="display:flex;flex-direction:column;gap:8px;flex:1;">';
+  membersData.forEach((m, idx) => {
+    const color = colors[idx % colors.length];
+    const pct = Math.round((m.value / total) * 100);
+    legendHtml += `
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;">
+        <span style="display:inline-flex;align-items:center;gap:6px;">
+          <span style="width:10px;height:10px;border-radius:50%;background:${color};"></span>
+          <span>${m.name}</span>
+        </span>
+        <span>${fmtMoney(m.value)} <span class="muted" style="font-size:10.5px;">(${pct}%)</span></span>
+      </div>
+    `;
+  });
+  legendHtml += '</div>';
+
+  return `
+    <div style="display:flex;align-items:center;gap:16px;margin-top:6px;">
+      <div style="position:relative;width:110px;height:110px;flex:none;">
+        <svg viewBox="0 0 110 110" style="width:100%;height:100%;">
+          ${pathsHtml}
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;">
+          <span style="font-size:9.5px;font-weight:700;color:var(--ink-faint);">المجموع</span>
+          <span style="font-size:11.5px;font-weight:800;color:var(--ink);">${fmtMoney(total)}</span>
+        </div>
+      </div>
+      ${legendHtml}
+    </div>
+  `;
+}
+
+function renderDashboard() {
+  const txs = DB.getAll('transactions');
+  const income = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const expense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const netSavings = income - expense;
+  const savingsRatio = income > 0 ? Math.round((netSavings / income) * 100) : 0;
+
+  // SMART BUDGET OVERFLOW BANNER CHECK
+  const budgets = DB.getAll('budgets');
+  const expenseTxs = txs.filter(t => t.type === 'expense');
+  let overflowBudgets = [];
+  budgets.forEach(b => {
+    const spent = expenseTxs.filter(t => t.category_id === b.category_id).reduce((s, t) => s + t.amount, 0);
+    const bLimit = b.amount || b.monthly_limit || 0;
+    if (bLimit > 0 && spent >= bLimit) {
+      const cat = DB.getById('categories', b.category_id);
+      overflowBudgets.push(`${cat?.icon || '📂'} ${cat?.name || 'ميزانية'}`);
+    }
+  });
+
+  const alertBannerEl = document.getElementById('smartBudgetAlertBanner');
+  if (alertBannerEl) {
+    if (overflowBudgets.length > 0) {
+      alertBannerEl.classList.remove('hidden');
+      alertBannerEl.innerHTML = `
+        <div style="background:var(--danger-soft);border:1px solid var(--danger);border-radius:14px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;color:var(--ink);">
+            <span style="font-size:18px;">⚠️</span>
+            <span>تنبيه تجاوز الميزانية: تم تجاوز حد الاستهلاك المسموح في <strong>${overflowBudgets.join('، ')}</strong>.</span>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="this.parentElement.remove()" style="color:var(--danger);">إغلاق ✕</button>
+        </div>
+      `;
+    } else {
+      alertBannerEl.classList.add('hidden');
+    }
+  }
+
+  // 1. TOP 4 STAT CARDS
+  const stats = [
+    { label: 'إجمالي الإيرادات (3 أشهر)', value: fmtMoney(income), icon: '💰', bg: 'var(--primary-soft)', fg: 'var(--primary)' },
+    { label: 'إجمالي المصروفات (3 أشهر)', value: fmtMoney(expense), icon: '💸', bg: 'var(--danger-soft)', fg: 'var(--danger)' },
+    { label: 'صافي الوفر الفعلي', value: fmtMoney(netSavings), icon: '📊', bg: 'var(--blue-soft)', fg: 'var(--blue)' },
+    { label: 'معدل الادخار الفعلي', value: `${savingsRatio}%`, icon: '🛡️', bg: 'var(--emerald-soft)', fg: 'var(--emerald)' },
+  ];
+  document.getElementById('statCards').innerHTML = stats.map(s => `
+    <div class="card stat-card hoverable">
+      <div class="stat-top"><div><div class="stat-label">${s.label}</div><div class="stat-value">${s.value}</div></div>
+      <div class="stat-badge" style="background:${s.bg};color:${s.fg};font-size:20px;">${s.icon}</div></div>
+    </div>
+  `).join('');
+
+  // 2. FINANCIAL HEALTH BADGE & SMART ADVICE WIDGET
+  const healthBadge = document.getElementById('healthBadge');
+  const healthAdviceBox = document.getElementById('healthAdviceBox');
+  if (savingsRatio >= 30) {
+    if (healthBadge) { healthBadge.className = 'chip chip-income'; healthBadge.textContent = `ممتاز 🟢 ${savingsRatio}% وفر`; }
+    if (healthAdviceBox) {
+      healthAdviceBox.innerHTML = `
+        <div style="background:var(--primary-soft);padding:12px 14px;border-radius:12px;border:1px solid var(--primary);font-size:13px;line-height:1.6;color:var(--ink);">
+          💡 <strong>وضع مالي ممتاز:</strong> تنجح الأسرة في توفير أكثر من 30% من دخلها الشامل. ينصح بتوجيه جزء من الوفر إلى استثمارات منخفضة المخاطر أو صندوق الطوارئ.
+        </div>
+      `;
+    }
+  } else if (savingsRatio >= 10) {
+    if (healthBadge) { healthBadge.className = 'chip chip-neutral'; healthBadge.textContent = `مستقر 🟡 ${savingsRatio}% وفر`; }
+    if (healthAdviceBox) {
+      healthAdviceBox.innerHTML = `
+        <div style="background:var(--blue-soft);padding:12px 14px;border-radius:12px;border:1px solid var(--blue);font-size:13px;line-height:1.6;color:var(--ink);">
+          💡 <strong>وضع مالي مستقر:</strong> المصروفات تحت السيطرة ولكن يفضل ترشيد فئات السوبرماركت والمطاعم لزيادة هامش الأمان الفعلي.
+        </div>
+      `;
+    }
+  } else {
+    if (healthBadge) { healthBadge.className = 'chip chip-expense'; healthBadge.textContent = `تحذير 🔴 ${savingsRatio}% وفر`; }
+    if (healthAdviceBox) {
+      healthAdviceBox.innerHTML = `
+        <div style="background:var(--danger-soft);padding:12px 14px;border-radius:12px;border:1px solid var(--danger);font-size:13px;line-height:1.6;color:var(--ink);">
+          ⚠️ <strong>تنبيه مالي:</strong> المصروفات تقارب إجمالي الإيرادات. راجع الميزانيات المخصصة وحاول تقليل المصروفات الكبيرة في الشهر الحالي.
+        </div>
+      `;
+    }
+  }
+
+  // 3. SAVINGS GOAL TRACKER
+  const targetGoal = 50000;
+  const currentSavings = Math.max(0, netSavings);
+  const goalPct = Math.min(100, Math.round((currentSavings / targetGoal) * 100));
+  const goalTextEl = document.getElementById('savingsGoalText');
+  const goalProgEl = document.getElementById('savingsGoalProgress');
+  if (goalTextEl) goalTextEl.textContent = `${fmtMoney(currentSavings)} / ${fmtMoney(targetGoal)}`;
+  if (goalProgEl) {
+    goalProgEl.innerHTML = `
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12.5px;font-weight:700;">
+        <span>التقدم نحو الهدف (ادخار طوارئ 2026)</span>
+        <span style="color:var(--primary);">${goalPct}%</span>
+      </div>
+      <div class="progress-bar" style="height:10px;border-radius:10px;"><div class="fill" style="width:${goalPct}%;background:linear-gradient(90deg, var(--primary) 0%, var(--emerald) 100%);"></div></div>
+      <p class="muted" style="font-size:11.5px;margin-top:8px;">متبقى ${fmtMoney(Math.max(0, targetGoal - currentSavings))} لتحقيق الهدف السنوي بالكامل 🎯</p>
+    `;
+  }
+
+  // AI FINANCIAL ADVISOR INSIGHTS
+  renderAiSmartInsights();
+
+  // 4. MONTHLY CASH FLOW SVG CHART (Dynamic from SQLite DB)
+  const monthMap = {};
+  txs.forEach(t => {
+    const mKey = (t.date || '').slice(0, 7);
+    if (!mKey) return;
+    if (!monthMap[mKey]) monthMap[mKey] = { inc: 0, exp: 0 };
+    if (t.type === 'income') monthMap[mKey].inc += t.amount;
+    else if (t.type === 'expense') monthMap[mKey].exp += t.amount;
+  });
+  const sortedMonths = Object.keys(monthMap).sort();
+  const monthlyData = sortedMonths.length > 0
+    ? sortedMonths.slice(-4).map(mKey => {
+        const [y, m] = mKey.split('-');
+        const dateObj = new Date(parseInt(y), parseInt(m) - 1, 1);
+        const mName = dateObj.toLocaleString('ar-EG', { month: 'long', year: 'numeric' });
+        return { month: mName, inc: monthMap[mKey].inc, exp: monthMap[mKey].exp };
+      })
+    : [{ month: 'الشهر الحالي', inc: income, exp: expense }];
+  const cashFlowEl = document.getElementById('cashFlowBars');
+  if (cashFlowEl) {
+    cashFlowEl.innerHTML = renderSvgCashFlowChart(monthlyData);
+  }
+
+  // 5. MEMBER DONUT CHART (توزيع إنفاق أفراد الأسرة)
+  const users = DB.getAll('users') || [];
+  const memberDonutBox = document.getElementById('memberDonutBox');
+  if (memberDonutBox) {
+    const memberSums = {};
+    expenseTxs.forEach(t => {
+      const uName = t.created_by_name || 'أحمد (مالك الأسرة)';
+      memberSums[uName] = (memberSums[uName] || 0) + t.amount;
+    });
+    const membersData = Object.keys(memberSums).map(name => ({
+      name: name.split(' ')[0],
+      value: memberSums[name]
+    })).sort((a, b) => b.value - a.value);
+
+    if (membersData.length === 0) {
+      memberDonutBox.innerHTML = '<p class="muted">لا توجد مصروفات مسجلة للأفراد بعد</p>';
+    } else {
+      memberDonutBox.innerHTML = renderSvgDonutChart(membersData.slice(0, 4));
+    }
+  }
+
+  // 6. UPCOMING BILLS & COMMITMENTS
+  const bills = [
+    { title: 'إيجار الشقة السكني', amount: 4500, due: 'مستحق في 1 أغسطس', status: 'pending', icon: '🏠' },
+    { title: 'فاتورة الكهرباء والغاز', amount: 850, due: 'مستحق في 5 أغسطس', status: 'pending', icon: '⚡' },
+    { title: 'اشتراك الإنترنت الفايبر', amount: 420, due: 'تم السداد اليوم 🟢', status: 'paid', icon: '🌐' },
+  ];
+  const billsEl = document.getElementById('upcomingBillsList');
+  if (billsEl) {
+    billsEl.innerHTML = bills.map(b => `
+      <div class="row-item" style="padding:8px 0;">
+        <div class="bubble sm" style="background:var(--surface-alt);color:var(--ink);">${b.icon}</div>
+        <div class="row-info">
+          <div class="row-title">${b.title}</div>
+          <div class="row-sub">${b.due}</div>
+        </div>
+        <div style="text-align:left;">
+          <div class="row-amount">${fmtMoney(b.amount)}</div>
+          <span class="chip ${b.status === 'paid' ? 'chip-income' : 'chip-neutral'}" style="font-size:10px;padding:2px 6px;">
+            ${b.status === 'paid' ? 'مدفوع 🟢' : 'مستحق ⏳'}
+          </span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // RECENT TRANSACTIONS LIST
+  document.getElementById('recentTxList').innerHTML = txs.slice(0, 5).map(t => {
+    const cat = DB.getById('categories', t.category_id);
+    const acc = DB.getById('accounts', t.account_id);
+    return `
+      <div class="row-item">
+        <button class="fav-btn" onclick="toggleFav('${t.id}')">${t.is_favorite ? '❤️' : '🤍'}</button>
+        <div class="bubble sm" style="background:${cat?.color || '#999'}22;color:${cat?.color || '#999'};">${cat?.icon || '🧾'}</div>
+        <div class="row-info"><div class="row-title">${t.note || cat?.name || 'معاملة'}</div><div class="row-sub">${acc?.name || ''} · ${fmtDate(t.date)}</div></div>
+        <div class="row-amount ${t.type === 'income' ? 'amount-in' : 'amount-out'}">${fmtMoney(t.amount)}</div>
+      </div>
+    `;
+  }).join('') || '<p class="muted">لا توجد معاملات بعد</p>';
+
+  // 6. TOP EXPENSE CATEGORIES (أكثر الفئات إنفاقاً آخر 3 أشهر)
+  const catSums = {};
+  expenseTxs.forEach(t => {
+    catSums[t.category_id] = (catSums[t.category_id] || 0) + t.amount;
+  });
+  const sortedCatIds = Object.keys(catSums).sort((a, b) => catSums[b] - catSums[a]);
+  const totalExpensesAll = expense || 1;
+
+  const topCatsEl = document.getElementById('topCategoriesList');
+  if (topCatsEl) {
+    if (sortedCatIds.length === 0) {
+      topCatsEl.innerHTML = '<p class="muted">لا توجد مصروفات مسجلة حتى الآن</p>';
+    } else {
+      topCatsEl.innerHTML = sortedCatIds.slice(0, 5).map(catId => {
+        const cat = DB.getById('categories', catId);
+        const sum = catSums[catId];
+        const pct = Math.round((sum / totalExpensesAll) * 100);
+        return `
+          <div style="margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;">
+                <span class="bubble sm" style="background:${cat?.color || '#999'}22;color:${cat?.color || '#999'};">${cat?.icon || '📂'}</span>
+                <span>${cat?.name || 'فئة أخرى'}</span>
+              </div>
+              <div style="font-size:12.5px;font-weight:700;">
+                <span>${fmtMoney(sum)}</span>
+                <span class="muted" style="font-size:11px;margin-inline-start:4px;">(${pct}%)</span>
+              </div>
+            </div>
+            <div class="progress-bar" style="height:7px;border-radius:6px;">
+              <div class="fill" style="width:${pct}%;background:${cat?.color || 'var(--primary)'};"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  // 7. DASHBOARD BUDGETS SUMMARY (ملخص الميزانيات ونسبة الاستهلاك)
+  const dashBudgetsEl = document.getElementById('dashBudgets');
+  if (dashBudgetsEl) {
+    if (budgets.length === 0) {
+      dashBudgetsEl.innerHTML = '<p class="muted" style="grid-column:1/-1;">لا توجد ميزانيات محددة بعد</p>';
+    } else {
+      dashBudgetsEl.innerHTML = budgets.slice(0, 3).map(b => {
+        const cat = DB.getById('categories', b.category_id);
+        const spent = expenseTxs.filter(t => t.category_id === b.category_id).reduce((s, t) => s + t.amount, 0);
+        const bLimit = b.amount || b.monthly_limit || 1;
+        const bPct = Math.min(100, Math.round((spent / bLimit) * 100));
+        const isOver = spent > bLimit;
+        return `
+          <div style="background:var(--surface-alt);padding:10px 12px;border-radius:12px;border:1px solid var(--line);">
+            <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:4px;">
+              <span>${cat?.icon || '📂'} ${cat?.name || 'ميزانية'}</span>
+              <span style="color:${isOver ? 'var(--danger)' : 'var(--primary)'};">${bPct}%</span>
+            </div>
+            <div class="progress-bar" style="height:6px;border-radius:4px;margin-bottom:4px;">
+              <div class="fill" style="width:${bPct}%;background:${isOver ? 'var(--danger)' : 'var(--primary)'};"></div>
+            </div>
+            <div class="muted" style="font-size:10.5px;">${fmtMoney(spent)} / ${fmtMoney(bLimit)}</div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  // 8. DASHBOARD ACCOUNTS FAST BALANCES (أرصدة الحسابات السريعة)
+  const accounts = DB.getAll('accounts');
+  const dashAccountsEl = document.getElementById('dashAccounts');
+  if (dashAccountsEl) {
+    if (accounts.length === 0) {
+      dashAccountsEl.innerHTML = '<p class="muted">لا توجد حسابات مسجلة بعد</p>';
+    } else {
+      dashAccountsEl.innerHTML = accounts.map(a => `
+        <div class="row-item" style="padding:8px 0;">
+          <div class="bubble sm" style="background:var(--surface-alt);color:var(--ink);">${a.icon || '🏦'}</div>
+          <div class="row-info">
+            <div class="row-title">${a.name}</div>
+            <div class="row-sub">${a.type || 'حساب مالى'}</div>
+          </div>
+          <div class="row-amount amount-in">${fmtMoney(a.balance || 0)}</div>
+        </div>
+      `).join('');
+    }
+  }
+
+  if (typeof loadNotifications === 'function') {
+    loadNotifications();
+  }
+}
+
+function renderTransactions() {
+  const accSel = document.getElementById('txFilterAccount');
+  const catSel = document.getElementById('txFilterCategory');
+
+  const curAcc = accSel ? accSel.value : '';
+  const curCat = catSel ? catSel.value : '';
+
+  if (accSel) fillSelect(accSel, DB.getAll('accounts'), { placeholder: 'الحساب 🏦' });
+  if (catSel) fillSelect(catSel, DB.getAll('categories'), { placeholder: 'الفئة 📂' });
+
+  if (accSel && curAcc) accSel.value = curAcc;
+  if (catSel && curCat) catSel.value = curCat;
+
+  bindTxFilterEvents();
+  applyTxFilters();
+}
+
+function handleDateDropdownChange(val) {
+  const customBox = document.getElementById('customDateRangeBox');
+  const fromEl = document.getElementById('txFilterFrom');
+  const toEl = document.getElementById('txFilterTo');
+
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+
+  if (val === 'custom') {
+    if (customBox) { customBox.classList.remove('hidden'); customBox.style.display = 'inline-flex'; }
+  } else {
+    if (customBox) { customBox.classList.add('hidden'); customBox.style.display = 'none'; }
+
+    if (val === 'all') {
+      fromEl.value = '';
+      toEl.value = '';
+    } else if (val === 'today') {
+      fromEl.value = todayStr;
+      toEl.value = todayStr;
+    } else if (val === 'yesterday') {
+      const y = new Date(); y.setDate(y.getDate() - 1);
+      const yStr = y.toISOString().slice(0, 10);
+      fromEl.value = yStr;
+      toEl.value = yStr;
+    } else if (val === 'this_week') {
+      const firstWeek = new Date(now);
+      firstWeek.setDate(now.getDate() - now.getDay());
+      fromEl.value = firstWeek.toISOString().slice(0, 10);
+      toEl.value = todayStr;
+    } else if (val === 'this_month') {
+      const firstM = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+      fromEl.value = firstM;
+      toEl.value = todayStr;
+    } else if (val === 'last_month') {
+      const firstLM = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 10);
+      const lastLM = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().slice(0, 10);
+      fromEl.value = firstLM;
+      toEl.value = lastLM;
+    } else if (val === 'last_90days') {
+      const past90 = new Date(); past90.setDate(past90.getDate() - 90);
+      fromEl.value = past90.toISOString().slice(0, 10);
+      toEl.value = todayStr;
+    }
+  }
+
+  applyTxFilters();
+}
+window.handleDateDropdownChange = handleDateDropdownChange;
+
+function bindTxFilterEvents() {
+  const ids = ['txSearch', 'txFilterType', 'txFilterAccount', 'txFilterCategory', 'txFilterDateSelect', 'txFilterFrom', 'txFilterTo'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && !el.dataset.bound) {
+      el.dataset.bound = 'true';
+      el.addEventListener('input', applyTxFilters);
+      el.addEventListener('change', applyTxFilters);
+    }
+  });
+
+  const btnReset = document.getElementById('btnResetTxFilters');
+  if (btnReset && !btnReset.dataset.bound) {
+    btnReset.dataset.bound = 'true';
+    btnReset.addEventListener('click', () => {
+      document.getElementById('txSearch').value = '';
+      document.getElementById('txFilterType').value = '';
+      document.getElementById('txFilterAccount').value = '';
+      document.getElementById('txFilterCategory').value = '';
+      if (document.getElementById('txFilterDateSelect')) document.getElementById('txFilterDateSelect').value = 'all';
+      document.getElementById('txFilterFrom').value = '';
+      document.getElementById('txFilterTo').value = '';
+      const customBox = document.getElementById('customDateRangeBox');
+      if (customBox) { customBox.classList.add('hidden'); customBox.style.display = 'none'; }
+      applyTxFilters();
+      toast('تم إعادة تصفير الفلاتر', 'info');
+    });
+  }
+}
+
+function applyTxFilters() {
+  let txs = DB.getAll('transactions');
+
+  const query = (document.getElementById('txSearch')?.value || '').trim().toLowerCase();
+  const typeF = document.getElementById('txFilterType')?.value || '';
+  const accF = document.getElementById('txFilterAccount')?.value || '';
+  const catF = document.getElementById('txFilterCategory')?.value || '';
+  const fromF = document.getElementById('txFilterFrom')?.value || '';
+  const toF = document.getElementById('txFilterTo')?.value || '';
+
+  if (typeF) txs = txs.filter(t => t.type === typeF);
+  if (accF) txs = txs.filter(t => t.account_id === accF);
+  if (catF) txs = txs.filter(t => t.category_id === catF);
+  if (fromF) txs = txs.filter(t => t.date >= fromF);
+  if (toF) txs = txs.filter(t => t.date <= toF);
+
+  if (query) {
+    txs = txs.filter(t => {
+      const cat = DB.getById('categories', t.category_id);
+      const acc = DB.getById('accounts', t.account_id);
+      const noteMatch = (t.note || '').toLowerCase().includes(query);
+      const catMatch = (cat?.name || '').toLowerCase().includes(query);
+      const accMatch = (acc?.name || '').toLowerCase().includes(query);
+      const creatorMatch = (t.creator_name || '').toLowerCase().includes(query);
+      const amountMatch = (t.amount || 0).toString().includes(query);
+      return noteMatch || catMatch || accMatch || creatorMatch || amountMatch;
+    });
+  }
+
+  const emptyEl = document.getElementById('txEmpty');
+  if (emptyEl) emptyEl.classList.toggle('hidden', txs.length > 0);
+
+  const tbody = document.getElementById('txTableBody');
+  if (!tbody) return;
+
+  tbody.innerHTML = txs.map(t => {
+    const cat = DB.getById('categories', t.category_id);
+    const acc = DB.getById('accounts', t.account_id);
+    return `
+      <tr>
+        <td><button class="fav-btn" onclick="toggleFav('${t.id}')">${t.is_favorite ? '❤️' : '🤍'}</button></td>
+        <td><b>${t.note || cat?.name || 'معاملة'}</b></td>
+        <td><span class="chip" style="background:${cat?.color || '#999'}22;color:${cat?.color || '#999'};">${cat?.icon || ''} ${cat?.name || '—'}</span></td>
+        <td>${acc?.name || '—'}</td>
+        <td class="muted">${t.creator_name || '—'}</td>
+        <td class="muted">${fmtDate(t.date)}</td>
+        <td class="${t.type === 'income' ? 'amount-in' : 'amount-out'}" style="font-weight:800;font-family:'Cairo';">
+          ${t.type === 'income' ? '+' : '-'}${fmtMoney(t.amount)}
+        </td>
+        <td>
+          ${canManage() ? `<button class="icon-btn" onclick="editTx('${t.id}')">✏️</button> <button class="icon-btn" onclick="deleteTx('${t.id}')">🗑️</button>` : ''}
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderFavorites() {
+  const favs = DB.getAll('favorites');
+  document.getElementById('favEmpty').classList.toggle('hidden', favs.length > 0);
+  document.getElementById('favCountBadge').textContent = `${favs.length} معاملات مفضلة`;
+
+  document.getElementById('favTableBody').innerHTML = favs.map(t => `
+    <tr>
+      <td><button class="fav-btn" onclick="toggleFav('${t.id}')">❤️</button></td>
+      <td><b>${t.note || t.category_name || 'معاملة مفضلة'}</b></td>
+      <td><span class="chip" style="background:${t.category_color || '#999'}22;color:${t.category_color || '#999'};">${t.category_icon || ''} ${t.category_name || '—'}</span></td>
+      <td>${t.account_name || '—'}</td>
+      <td class="muted">${fmtDate(t.date)}</td>
+      <td class="${t.type === 'income' ? 'amount-in' : 'amount-out'}" style="font-weight:800;font-family:'Cairo';">
+        ${t.type === 'income' ? '+' : '-'}${fmtMoney(t.amount)}
+      </td>
+      <td>
+        <button class="icon-btn" onclick="editTx('${t.id}')">✏️</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderAccounts() {
+  const accs = DB.getAll('accounts');
+  document.getElementById('accEmpty').classList.toggle('hidden', accs.length > 0);
+  document.getElementById('accountsGrid').innerHTML = accs.map(a => `
+    <div class="card hoverable">
+      <div class="card-head">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="bubble lg" style="background:${a.color}22;color:${a.color};">🏦</div>
+          <div><div style="font-weight:800;font-family:'Cairo';font-size:14.5px;">${a.name}</div><div class="muted" style="font-size:12px;">${a.type}</div></div>
+        </div>
+        ${canManage() ? `
+          <div style="display:flex;gap:4px;">
+            <button class="icon-btn" onclick="openAccModal('${a.id}')">✏️</button>
+            <button class="icon-btn" onclick="deleteAccount('${a.id}')">🗑️</button>
+          </div>
+        ` : ''}
+      </div>
+      <div class="stat-value" style="font-size:22px;">${fmtMoney(a.current_balance)}</div>
+      <div class="muted" style="font-size:11.5px;margin-top:2px;">الرصيد الابتدائي: ${fmtMoney(a.initial_balance)}</div>
+    </div>
+  `).join('');
+}
+
+function renderCategories() {
+  const cats = DB.getAll('categories');
+  document.getElementById('categoriesGrid').innerHTML = cats.map(c => `
+    <div class="card hoverable" style="text-align:center;position:relative;">
+      ${canManage() ? `
+        <div style="position:absolute;top:10px;left:10px;display:flex;gap:4px;">
+          <button class="icon-btn" onclick="openCatModal('${c.id}')">✏️</button>
+          <button class="icon-btn" onclick="deleteCat('${c.id}')">🗑️</button>
+        </div>
+      ` : ''}
+      <div class="bubble lg" style="background:${c.color}22;color:${c.color};margin:0 auto 10px;">${c.icon}</div>
+      <div style="font-weight:800;font-family:'Cairo';font-size:14px;">${c.name}</div>
+      <span class="chip ${c.type === 'income' ? 'chip-income' : 'chip-expense'}" style="margin-top:8px;">${c.type === 'income' ? 'إيراد' : 'مصروف'}</span>
+    </div>
+  `).join('');
+}
+
+function renderBudgets() {
+  const buds = DB.getAll('budgets');
+  document.getElementById('budEmpty').classList.toggle('hidden', buds.length > 0);
+  document.getElementById('budgetsGrid').innerHTML = buds.map(b => {
+    const cat = DB.getById('categories', b.category_id);
+    const spent = DB.getAll('transactions').filter(t => t.category_id === b.category_id && t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const pct = b.amount > 0 ? (spent / b.amount) * 100 : 0;
+    return `
+      <div class="card hoverable">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="bubble" style="background:${cat?.color || '#999'}22;color:${cat?.color || '#999'};">${cat?.icon || '💵'}</div>
+            <div><b>${b.name}</b><div class="muted" style="font-size:11px;">${cat?.name || ''}</div></div>
+          </div>
+          ${canManage() ? `
+            <div style="display:flex;gap:4px;">
+              <button class="icon-btn" onclick="openBudModal('${b.id}')">✏️</button>
+              <button class="icon-btn" onclick="deleteBud('${b.id}')">🗑️</button>
+            </div>
+          ` : ''}
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink-faint);margin-bottom:4px;">
+          <span>الميزانية: <b>${fmtMoney(b.amount)}</b></span>
+          <span>المصروف: <b>${fmtMoney(spent)}</b></span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.min(pct, 100)}%;"></div></div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderTags() {
+  const tags = DB.getAll('tags');
+  document.getElementById('tagsGrid').innerHTML = tags.map(t => `
+    <div class="card hoverable" style="text-align:center;position:relative;">
+      ${canManage() ? `
+        <div style="position:absolute;top:10px;left:10px;display:flex;gap:4px;">
+          <button class="icon-btn" onclick="openTagModal('${t.id}')">✏️</button>
+          <button class="icon-btn" onclick="deleteTag('${t.id}')">🗑️</button>
+        </div>
+      ` : ''}
+      <div class="bubble lg" style="background:${t.color}22;color:${t.color};margin:0 auto 10px;">${t.icon}</div>
+      <div style="font-weight:800;font-family:'Cairo';font-size:14px;">${t.name}</div>
+    </div>
+  `).join('');
+}
+
+function renderReports() {
+  const txs = DB.getAll('transactions');
+  const income = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const expense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const net = income - expense;
+
+  const kpis = [
+    { label: 'إجمالي الإيرادات (3 أشهر)', value: fmtMoney(income), icon: '💰' },
+    { label: 'إجمالي المصروفات (3 أشهر)', value: fmtMoney(expense), icon: '💸' },
+    { label: 'صافي الوفر الفعلي', value: fmtMoney(net), icon: '📊' },
+    { label: 'معدل الادخار', value: income > 0 ? Math.round((net / income) * 100) + '%' : '0%', icon: '📈' },
+  ];
+  document.getElementById('reportKpis').innerHTML = kpis.map(k => `
+    <div class="card stat-card">
+      <div class="stat-top"><div><div class="stat-label">${k.label}</div><div class="stat-value">${k.value}</div></div>
+      <div class="bubble sm" style="background:var(--surface-alt);">${k.icon}</div></div>
+    </div>
+  `).join('');
+
+  const expByCat = {};
+  txs.filter(t => t.type === 'expense').forEach(t => { expByCat[t.category_id] = (expByCat[t.category_id] || 0) + t.amount; });
+  const sorted = Object.entries(expByCat).sort((a, b) => b[1] - a[1]);
+  const max = sorted.length ? sorted[0][1] : 1;
+
+  document.getElementById('reportCategoryBars').innerHTML = sorted.map(([cid, amt]) => {
+    const c = DB.getById('categories', cid);
+    return `
+      <div class="bar-row">
+        <div class="bubble sm" style="background:${c?.color || '#999'}22;color:${c?.color || '#999'};">${c?.icon || '•'}</div>
+        <div style="flex:1;">
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;">
+            <b>${c?.name || 'فئة'}</b><span>${fmtMoney(amt)}</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:${amt / max * 100}%;background:${c?.color || 'var(--primary)'};"></div></div>
+        </div>
+      </div>
+    `;
+  }).join('') || '<p class="muted">لا توجد بيانات مصروفات للتجميع</p>';
+}
+
+let currentTeamMembers = [];
+
+async function renderTeam() {
+  const ws = currentWorkspace(); if (!ws) return;
+  const ownerMode = isOwner();
+  document.getElementById('teamCardTitle').textContent = `أعضاء ${ws.name}`;
+  document.getElementById('wsJoinCodeDisplay').textContent = ws.join_code || 'FAM-CODE';
+
+  const joinCodeCard = document.getElementById('teamJoinCodeCard');
+  if (joinCodeCard) joinCodeCard.style.display = ownerMode ? 'block' : 'none';
+
+  const joinActionCard = document.getElementById('teamJoinByCodeActionCard');
+  if (joinActionCard) joinActionCard.style.display = ownerMode ? 'none' : 'block';
+
+  const editCodeBtn = document.getElementById('btnOpenEditCode');
+  if (editCodeBtn) editCodeBtn.style.display = ownerMode ? 'inline-flex' : 'none';
+
+  const requestsCard = document.getElementById('teamRequestsCard');
+  if (requestsCard) requestsCard.style.display = ownerMode ? 'block' : 'none';
+
+  const tableHead = document.getElementById('teamTableHead');
+  if (tableHead) {
+    tableHead.innerHTML = ownerMode
+      ? `<tr><th>العضو</th><th>البريد الإلكتروني</th><th>الدور</th><th>الميزانية المخصصة والاستهلاك</th><th>الإجراءات والصلاحيات</th></tr>`
+      : `<tr><th>العضو</th><th>البريد الإلكتروني</th><th>الدور</th></tr>`;
+  }
+
+  const res = await apiFetch(`/api/workspaces/${ws.id}/members`);
+  currentTeamMembers = res.members || [];
+
+  document.getElementById('teamMembersBody').innerHTML = res.members.map(m => {
+    const spent = m.current_month_spent || 0;
+    const limit = m.monthly_spending_limit || 0;
+    let limitHTML = '<span class="muted">مفتوح</span>';
+    if (limit > 0) {
+      const pct = Math.min(100, Math.round((spent / limit) * 100));
+      const barColor = pct < 70 ? '#0E9A73' : (pct < 100 ? '#F5A623' : '#E1503F');
+      const warningText = pct >= 100 ? ' <span style="color:#E1503F;font-size:11px;font-weight:700;">⚠️ (تجاوز الحد!)</span>' : '';
+      limitHTML = `
+        <div>
+          <div style="font-size:12px;margin-bottom:2px;"><b>${fmtMoney(spent)}</b> من ${fmtMoney(limit)}${warningText}</div>
+          <div class="bar-track" style="height:6px;width:130px;background:#e9ecef;"><div class="bar-fill" style="width:${pct}%;background:${barColor};height:6px;border-radius:3px;"></div></div>
+        </div>
+      `;
+    }
+
+    if (ownerMode) {
+      return `
+        <tr>
+          <td><b>${m.name}</b> ${m.username ? `<span class="muted" style="font-size:12px;">(@${m.username})</span>` : ''}</td>
+          <td class="muted">${m.email}</td>
+          <td><span class="role-badge role-${m.role}">${ROLE_LABELS[m.role] || m.role}</span></td>
+          <td>${limitHTML}</td>
+          <td>
+            ${m.role !== 'owner' ? `
+              <div style="display:flex;gap:4px;">
+                <button class="btn btn-outline btn-sm" onclick="openEditMemberPermissions('${m.id}')">⚙️ الميزانية والصلاحيات</button>
+                <button class="btn btn-danger-ghost btn-sm" onclick="removeMember('${ws.id}', '${m.id}')">🗑️ إزالة</button>
+              </div>
+            ` : '<span class="muted" style="font-size:11px;">(مالك المساحة)</span>'}
+          </td>
+        </tr>
+      `;
+    } else {
+      return `
+        <tr>
+          <td><b>${m.name}</b> ${m.username ? `<span class="muted" style="font-size:12px;">(@${m.username})</span>` : ''}</td>
+          <td class="muted">${m.email}</td>
+          <td><span class="role-badge role-${m.role}">${ROLE_LABELS[m.role] || m.role}</span></td>
+        </tr>
+      `;
+    }
+  }).join('');
+
+  if (ownerMode && requestsCard) {
+    document.getElementById('teamJoinRequestsList').innerHTML = res.requests.length ? res.requests.map(r => `
+      <div class="row-item" style="padding:12px;border-bottom:1px solid var(--line);">
+        <div class="avatar sm" style="background:var(--grad);color:#fff;">${r.name[0]}</div>
+        <div class="row-info">
+          <b>${r.name}</b> ${r.username ? `@${r.username}` : ''}
+          <div class="muted" style="font-size:12px;">${r.email}</div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-primary btn-sm" onclick="handleJoinReq('${ws.id}', '${r.id}', 'approve')">✅ قبول الانضمام</button>
+          <button class="btn btn-outline btn-sm" onclick="handleJoinReq('${ws.id}', '${r.id}', 'reject')">❌ رفض</button>
+        </div>
+      </div>
+    `).join('') : '<p class="muted" style="font-size:12.5px;">لا توجد طلبات انضمام معلقة</p>';
+  }
+
+  // Family Saver Leaderboard
+  const leaderboardEl = document.getElementById('familySaverLeaderboard');
+  if (leaderboardEl) {
+    const sortedMembers = [...res.members].map(m => {
+      const spent = m.current_month_spent || 0;
+      const limit = m.monthly_spending_limit || 0;
+      const remaining = limit > 0 ? (limit - spent) : 0;
+      const pct = limit > 0 ? Math.round((spent / limit) * 100) : 0;
+      return { ...m, spent, limit, remaining, pct };
+    }).sort((a, b) => b.remaining - a.remaining);
+
+    const medals = ['🥇 المركز الأول في الادخار', '🥈 رائع في الالتزام', '🥉 ممتاز', '🏅 ملتزم'];
+    leaderboardEl.innerHTML = sortedMembers.map((m, idx) => `
+      <div class="row-item" style="padding:10px 14px;background:var(--bg-sec);border-radius:10px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <b style="font-size:16px;">${idx === 0 ? '🥇' : (idx === 1 ? '🥈' : (idx === 2 ? '🥉' : '🎖️'))}</b>
+          <div>
+            <b>${m.name}</b> <span class="muted" style="font-size:11px;">(${medals[idx] || 'عضو ملتزم'})</span>
+            <div class="muted" style="font-size:11.5px;">إنفاق الشهر: <b>${fmtMoney(m.spent)}</b> ${m.limit > 0 ? `(من ${fmtMoney(m.limit)})` : ''}</div>
+          </div>
+        </div>
+        <div>
+          ${m.limit > 0 ? `<span class="badge" style="background:${m.pct <= 70 ? '#0E9A7322' : '#E1503F22'};color:${m.pct <= 70 ? '#0E9A73' : '#E1503F'};font-weight:700;">${m.pct}% استهلاك</span>` : '<span class="muted" style="font-size:11px;">مفتوح</span>'}
+        </div>
+      </div>
+    `).join('') || '<p class="muted">لا توجد بيانات للأعضاء</p>';
+  }
+
+  // Fund requests dropdown & list
+  const catSelect = document.getElementById('fundCategorySelect');
+  if (catSelect) {
+    catSelect.innerHTML = State.categories.map(c => `<option value="${c.id}">${c.icon || ''} ${c.name}</option>`).join('');
+  }
+  await renderFundRequests(ws.id, ownerMode);
+}
+
+async function doTeamJoinByCode() {
+  const join_code = document.getElementById('joinCodeTeamInput')?.value.trim();
+  if (!join_code) return toast('يرجى إدخال كود المساحة العائلية', 'error');
+
+  try {
+    const res = await apiFetch('/api/workspaces/join-request', {
+      method: 'POST',
+      body: JSON.stringify({ join_code })
+    });
+    toast(res.message || 'تم إرسال طلب الانضمام لمالك المساحة بنجاح، في انتظار موافقته!', 'success');
+    if (document.getElementById('joinCodeTeamInput')) document.getElementById('joinCodeTeamInput').value = '';
+    await DB.init();
+    await renderAll();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+window.doTeamJoinByCode = doTeamJoinByCode;
+
+function openEditMemberPermissions(memberId) {
+  const m = currentTeamMembers.find(x => x.id === memberId);
+  if (!m) return;
+  document.getElementById('editMemberId').value = m.id;
+  document.getElementById('editMemberModalTitle').textContent = `⚙️ تعديل ميزانية وصلاحيات: ${m.name}`;
+  document.getElementById('editMemberRole').value = m.role || 'member';
+  document.getElementById('editMemberLimit').value = m.monthly_spending_limit || 0;
+  openModal('modalEditMemberPermissions');
+}
+window.openEditMemberPermissions = openEditMemberPermissions;
+
+async function removeMember(wsId, memberId) {
+  const m = currentTeamMembers.find(x => x.id === memberId);
+  const name = m ? m.name : 'العضو';
+  if (!confirm(`هل أنت متأكد من إزالة "${name}" من المساحة العائلية؟`)) return;
+
+  try {
+    await apiFetch(`/api/workspaces/${wsId}/members/${memberId}`, { method: 'DELETE' });
+    toast(`تم إزالة العضو ${name} من المساحة بنجاح`, 'info');
+    await renderTeam();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+window.removeMember = removeMember;
+
+async function handleJoinReq(wsId, reqId, action) {
+  try {
+    await apiFetch(`/api/workspaces/${wsId}/requests/${reqId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ action })
+    });
+    toast(action === 'approve' ? 'تم قبول طلب الانضمام بنجاح' : 'تم رفض طلب الانضمام', action === 'approve' ? 'success' : 'info');
+    await renderTeam();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+window.handleJoinReq = handleJoinReq;
+
+async function renderFundRequests(wsId, ownerMode) {
+  try {
+    const reqs = await apiFetch(`/api/fund-requests?workspace_id=${wsId}`);
+    const listEl = document.getElementById('teamFundRequestsList');
+    if (!listEl) return;
+
+    if (!reqs || !reqs.length) {
+      listEl.innerHTML = '<p class="muted" style="font-size:12.5px;">لا توجد طلبات تمويل أو مصروفات بالأسرة</p>';
+      return;
+    }
+
+    listEl.innerHTML = reqs.map(r => {
+      const statusBadge = r.status === 'approved'
+        ? '<span class="badge badge-success" style="background:#0E9A7322;color:#0E9A73;">✅ معتمد ومصروف</span>'
+        : (r.status === 'rejected' ? '<span class="badge badge-danger" style="background:#E1503F22;color:#E1503F;">❌ مرفوض</span>' : '<span class="badge badge-warning" style="background:#F5A62322;color:#F5A623;">⏳ قيد الانتظار</span>');
+
+      return `
+        <div class="row-item" style="padding:12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <b>${r.title}</b> - <span style="color:var(--danger);font-weight:700;">${fmtMoney(r.amount)}</span> ${statusBadge}
+            <div class="muted" style="font-size:12px;">طالب المصروف: <b>${r.user_name}</b> ${r.category_name ? `• الفئة: ${r.category_icon || ''} ${r.category_name}` : ''}</div>
+            ${r.note ? `<div class="muted" style="font-size:11px;">ملاحظة: ${r.note}</div>` : ''}
+          </div>
+          ${ownerMode && r.status === 'pending' ? `
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-primary btn-sm" onclick="handleFundReq('${r.id}', 'approve')">✅ موافقة وتحويل لمصروف</button>
+              <button class="btn btn-outline btn-sm" onclick="handleFundReq('${r.id}', 'reject')">❌ رفض</button>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
+  } catch (e) {}
+}
+window.renderFundRequests = renderFundRequests;
+
+async function handleFundReq(reqId, action) {
+  try {
+    await apiFetch(`/api/fund-requests/${reqId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ action })
+    });
+    toast(action === 'approve' ? 'تمت الموافقة وتحويل الطلب لمصروف معتمد!' : 'تم رفض الطلب', action === 'approve' ? 'success' : 'info');
+    const ws = currentWorkspace();
+    if (ws) {
+      await DB.loadWorkspaceData();
+      await renderTeam();
+    }
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+window.handleFundReq = handleFundReq;
+
+document.getElementById('btnSubmitFundRequest')?.addEventListener('click', async () => {
+  const ws = currentWorkspace(); if (!ws) return;
+  const title = document.getElementById('fundTitleInput').value.trim();
+  const amount = Number(document.getElementById('fundAmountInput').value);
+  const category_id = document.getElementById('fundCategorySelect').value;
+  const note = document.getElementById('fundNoteInput').value.trim();
+
+  if (!title || !amount || amount <= 0) {
+    return toast('يرجى كتابة عنوان وتحديد مبلغ صحيح لطلب التمويل', 'error');
+  }
+
+  try {
+    await apiFetch('/api/fund-requests', {
+      method: 'POST',
+      body: JSON.stringify({ workspace_id: ws.id, title, amount, category_id, note })
+    });
+    toast('تم إرسال طلب المصروف لمالك الأسرة بنجاح! 🚀', 'success');
+    closeModal('modalRequestFund');
+    document.getElementById('fundTitleInput').value = '';
+    document.getElementById('fundAmountInput').value = '';
+    document.getElementById('fundNoteInput').value = '';
+    await renderTeam();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+});
+window.openEditMemberPermissions = openEditMemberPermissions;
+
+let deferredPwaPrompt;
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW Reg Fail:', err));
+  });
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPwaPrompt = e;
+  const btn = document.getElementById('btnInstallPwa');
+  if (btn) btn.classList.remove('hidden');
+});
+
+async function installPwaApp() {
+  if (!deferredPwaPrompt) return;
+  deferredPwaPrompt.prompt();
+  const { outcome } = await deferredPwaPrompt.userChoice;
+  if (outcome === 'accepted') {
+    toast('شكراً لتثبيت تطبيق محفظة على جهازك! 🎉', 'success');
+    const btn = document.getElementById('btnInstallPwa');
+    if (btn) btn.classList.add('hidden');
+  }
+  deferredPwaPrompt = null;
+}
+window.installPwaApp = installPwaApp;
+
+async function loadNotifications() {
+  try {
+    const res = await apiFetch('/api/notifications');
+    const badge = document.getElementById('notifCountBadge');
+    if (badge) {
+      if (res.unread_count > 0) {
+        badge.textContent = res.unread_count;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+    const listBody = document.getElementById('notifListBody');
+    if (listBody) {
+      if (!res.notifications || !res.notifications.length) {
+        listBody.innerHTML = '<p class="muted" style="font-size:12px;text-align:center;padding:12px;">لا توجد إشعارات جديدة</p>';
+      } else {
+        listBody.innerHTML = res.notifications.map(n => `
+          <div style="padding:10px 14px;border-bottom:1px solid var(--line);background:${n.is_read ? 'transparent' : 'var(--bg-sec)'};">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <b>${n.title}</b>
+              <span class="muted" style="font-size:10px;">${new Date(n.created_at).toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'})}</span>
+            </div>
+            <div style="font-size:12px;color:var(--text-sec);margin-top:2px;">${n.message}</div>
+          </div>
+        `).join('');
+      }
+    }
+  } catch (e) {}
+}
+window.loadNotifications = loadNotifications;
+
+function toggleNotifDropdown() {
+  const dd = document.getElementById('notifDropdown');
+  if (dd) {
+    const isShown = dd.style.display === 'block';
+    dd.style.display = isShown ? 'none' : 'block';
+    if (!isShown) loadNotifications();
+  }
+}
+window.toggleNotifDropdown = toggleNotifDropdown;
+
+async function markNotifsAsRead() {
+  try {
+    await apiFetch('/api/notifications/read-all', { method: 'PUT' });
+    await loadNotifications();
+    toast('تم تحديد جميع الإشعارات كمقروءة', 'info');
+  } catch (e) {}
+}
+window.markNotifsAsRead = markNotifsAsRead;
+
+async function renderRecurringBills() {
+  const ws = currentWorkspace(); if (!ws) return;
+  try {
+    const bills = await apiFetch(`/api/recurring-bills?workspace_id=${ws.id}`);
+    const modalList = document.getElementById('recurringBillsListModal');
+    if (modalList) {
+      if (!bills || !bills.length) {
+        modalList.innerHTML = '<p class="muted" style="font-size:12.5px;">لا توجد فواتير دورية مجدولة بعد</p>';
+      } else {
+        modalList.innerHTML = bills.map(b => `
+          <div class="row-item" style="padding:10px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <b>${b.title}</b> - <span style="font-weight:700;color:var(--danger);">${fmtMoney(b.amount)}</span>
+              <div class="muted" style="font-size:12px;">موعد الاستحقاق: يوم <b>${b.due_day}</b> من الشهر ${b.account_name ? `• حساب الخصم: <b>${b.account_name}</b>` : ''}</div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-primary btn-sm" onclick="payRecurringBill('${b.id}')">⚡ دفع الآن</button>
+              <button class="btn btn-danger-ghost btn-sm" onclick="deleteRecurringBill('${b.id}')">🗑️</button>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    const catSelect = document.getElementById('recBillCategorySelect');
+    if (catSelect) {
+      catSelect.innerHTML = State.categories.map(c => `<option value="${c.id}">${c.icon || ''} ${c.name}</option>`).join('');
+    }
+    const accSelect = document.getElementById('recBillAccountSelect');
+    if (accSelect) {
+      accSelect.innerHTML = State.accounts.map(a => `<option value="${a.id}">${a.name} (رصيد: ${fmtMoney(a.balance || 0)})</option>`).join('');
+    }
+  } catch (e) {}
+}
+window.renderRecurringBills = renderRecurringBills;
+
+async function addRecurringBill() {
+  const ws = currentWorkspace(); if (!ws) return;
+  const title = document.getElementById('recBillTitle').value.trim();
+  const amount = Number(document.getElementById('recBillAmount').value);
+  const due_day = Number(document.getElementById('recBillDueDay').value);
+  const category_id = document.getElementById('recBillCategorySelect').value;
+  const account_id = document.getElementById('recBillAccountSelect').value;
+
+  if (!title || !amount || !due_day) return toast('يرجى ملء جميع حقول الفاتورة الدورية', 'error');
+
+  try {
+    await apiFetch('/api/recurring-bills', {
+      method: 'POST',
+      body: JSON.stringify({ workspace_id: ws.id, title, amount, due_day, category_id, account_id })
+    });
+    toast('تم حفظ وجدولة الفاتورة الدورية وتحديد حساب الخصم بنجاح! 📅', 'success');
+    document.getElementById('recBillTitle').value = '';
+    document.getElementById('recBillAmount').value = '';
+    document.getElementById('recBillDueDay').value = '';
+    await renderRecurringBills();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+window.addRecurringBill = addRecurringBill;
+
+async function payRecurringBill(id) {
+  try {
+    await apiFetch(`/api/recurring-bills/${id}/pay`, { method: 'POST' });
+    toast('تم سداد الفاتورة الدورية وتمريرها لمصروفات الشهر بنجاح! ⚡', 'success');
+    await DB.loadWorkspaceData();
+    await renderAll();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+window.payRecurringBill = payRecurringBill;
+
+async function deleteRecurringBill(id) {
+  if (!confirm('هل أنت متأكد من حذف هذه الفاتورة الدورية المجدولة؟')) return;
+  try {
+    await apiFetch(`/api/recurring-bills/${id}`, { method: 'DELETE' });
+    toast('تم حذف الفاتورة المجدولة بنجاح', 'info');
+    await renderRecurringBills();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+window.deleteRecurringBill = deleteRecurringBill;
+
+function getWorkspaceCurrencySymbol() {
+  const ws = currentWorkspace();
+  const code = ws?.currency || 'EGP';
+  const map = { EGP: 'ج.م', SAR: '﷼', AED: 'د.إ', USD: '$', EUR: '€' };
+  return map[code] || 'ج.م';
+}
+
+function fmtMoney(amt) {
+  const symbol = getWorkspaceCurrencySymbol();
+  const n = Number(amt) || 0;
+  return n.toLocaleString('ar-EG') + ' ' + symbol;
+}
+window.fmtMoney = fmtMoney;
+
+function renderAiSmartInsights() {
+  const container = document.getElementById('aiSmartInsightsBody');
+  if (!container) return;
+
+  const txs = DB.getAll('transactions').filter(t => !t.is_deleted);
+  const expenseTxs = txs.filter(t => t.type === 'expense');
+  const totalExpense = expenseTxs.reduce((s, t) => s + t.amount, 0);
+
+  const expByCat = {};
+  expenseTxs.forEach(t => { expByCat[t.category_id] = (expByCat[t.category_id] || 0) + t.amount; });
+  const sortedCats = Object.entries(expByCat).sort((a, b) => b[1] - a[1]);
+  const topCatPair = sortedCats[0];
+  const topCat = topCatPair ? DB.getById('categories', topCatPair[0]) : null;
+
+  const tips = [];
+
+  if (topCat && totalExpense > 0) {
+    const catPct = Math.round((topCatPair[1] / totalExpense) * 100);
+    tips.push(`
+      <div style="background:var(--bg-sec);padding:12px;border-radius:10px;border-right:4px solid var(--primary);">
+        <b style="color:var(--primary);font-size:13px;">💡 تحليل الاستهلاك الأكبر:</b>
+        <div style="font-size:12px;margin-top:4px;">فئة <b>${topCat.name}</b> تمثل <b>${catPct}%</b> من إجمالي المصروفات. ضبط هذه الفئة يوفر لك ميزانية ممتازة.</div>
+      </div>
+    `);
+  }
+
+  const budgetList = DB.getAll('budgets');
+  const overBudgets = budgetList.filter(b => {
+    const spent = expenseTxs.filter(t => t.category_id === b.category_id).reduce((s, t) => s + t.amount, 0);
+    return spent > (b.amount || b.monthly_limit || 0);
+  });
+
+  if (overBudgets.length > 0) {
+    tips.push(`
+      <div style="background:var(--bg-sec);padding:12px;border-radius:10px;border-right:4px solid var(--danger);">
+        <b style="color:var(--danger);font-size:13px;">⚠️ تحذير الميزانيات:</b>
+        <div style="font-size:12px;margin-top:4px;">هناك <b>${overBudgets.length}</b> ميزانيات تجاوزت الحد المسموح به هذا الشهر! راجع الميزانيات لضبط المصروفات.</div>
+      </div>
+    `);
+  } else {
+    tips.push(`
+      <div style="background:var(--bg-sec);padding:12px;border-radius:10px;border-right:4px solid #0E9A73;">
+        <b style="color:#0E9A73;font-size:13px;">🎯 الالتزام بالميزانية:</b>
+        <div style="font-size:12px;margin-top:4px;">جميع ميزانياتك تقع ضمن الحدود الآمنة حتى الآن. استمر في التخطيط المالي المتزن!</div>
+      </div>
+    `);
+  }
+
+  tips.push(`
+    <div style="background:var(--bg-sec);padding:12px;border-radius:10px;border-right:4px solid #6366F1;">
+      <b style="color:#6366F1;font-size:13px;">📈 نصيحة الادخار الذكية:</b>
+      <div style="font-size:12px;margin-top:4px;">توجيه 15% من صافي الإيرادات فور تحصيلها لـ "خزينة الادخار" يضمن لك حماية الأسرة من الفوارق المعتادة.</div>
+    </div>
+  `);
+
+  container.innerHTML = tips.join('');
+}
+window.renderAiSmartInsights = renderAiSmartInsights;
+
+async function exportToExcel() {
+  const ws = currentWorkspace(); if (!ws) return;
+  window.open(`/api/export/excel?workspace_id=${ws.id}`, '_blank');
+  toast('جاري تحميل تقرير Excel المنسق باللغة العربية 📊', 'success');
+}
+window.exportToExcel = exportToExcel;
+
+function exportFinancialReport() {
+  if (confirm('هل تريد تنزيل التقرير المالي كملف Excel؟ (اضغط Cancel لطباعة تقرير PDF)')) {
+    exportToExcel();
+  } else {
+    window.print();
+  }
+}
+window.exportFinancialReport = exportFinancialReport;
+
+async function renderAuditLogView() {
+  try {
+    const logs = await apiFetch('/api/audit-log');
+    const tbody = document.getElementById('auditLogBody');
+    if (!tbody) return;
+
+    if (!logs || !logs.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="muted">لا توجد أنشطة مسجلة بعد</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = logs.map(l => `
+      <tr>
+        <td class="muted" style="font-size:12px;">${new Date(l.created_at).toLocaleString('ar-EG')}</td>
+        <td><b>${l.actor_name || 'النظام'}</b> ${l.actor_email ? `<span class="muted" style="font-size:11px;">(${l.actor_email})</span>` : ''}</td>
+        <td><span class="badge" style="background:var(--surface-alt);">${l.action}</span></td>
+        <td>${l.target || '—'}</td>
+        <td class="muted" style="font-size:12px;">${l.meta || '—'}</td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+window.renderAuditLogView = renderAuditLogView;
+
+document.getElementById('btnSaveMemberPermissions')?.addEventListener('click', async () => {
+  const memberId = document.getElementById('editMemberId').value;
+  const role = document.getElementById('editMemberRole').value;
+  const limitVal = parseFloat(document.getElementById('editMemberLimit').value) || 0;
+  const ws = currentWorkspace();
+  if (!ws) return;
+
+  try {
+    await apiFetch(`/api/workspaces/${ws.id}/members/${memberId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ role, monthly_spending_limit: limitVal })
+    });
+    closeModal('modalEditMemberPermissions');
+    toast('تم تحديث ميزانية وصلاحيات العضو بنجاح!', 'success');
+    await renderTeam();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+});
+
+function renderSettingsView() {
+  const user = currentUser();
+  if (user) {
+    document.getElementById('setProfileName').value = user.name || '';
+    if (document.getElementById('setProfileEmail')) document.getElementById('setProfileEmail').value = user.email || '';
+    if (document.getElementById('setProfileUsername')) document.getElementById('setProfileUsername').value = user.username || '';
+    if (document.getElementById('setProfilePhone')) document.getElementById('setProfilePhone').value = user.phone || '';
+    if (document.getElementById('setProfileJobTitle')) document.getElementById('setProfileJobTitle').value = user.job_title || '';
+    if (document.getElementById('setProfileBio')) document.getElementById('setProfileBio').value = user.bio || '';
+    document.getElementById('setProfileAvatar').value = user.avatar || '';
+    renderAvatarElement(document.getElementById('settingsAvatarPreview'), user.avatar, user.name);
+  }
+}
+
+// PROFILE AVATAR FILE PICKER READ
+document.getElementById('fileAvatarPicker').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const dataUrl = ev.target.result;
+    document.getElementById('setProfileAvatar').value = dataUrl;
+    renderAvatarElement(document.getElementById('settingsAvatarPreview'), dataUrl, document.getElementById('setProfileName').value);
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById('btnSaveProfile').addEventListener('click', async () => {
+  const name = document.getElementById('setProfileName').value.trim();
+  const email = document.getElementById('setProfileEmail')?.value.trim();
+  const username = document.getElementById('setProfileUsername')?.value.trim();
+  const phone = document.getElementById('setProfilePhone')?.value.trim();
+  const job_title = document.getElementById('setProfileJobTitle')?.value.trim();
+  const bio = document.getElementById('setProfileBio')?.value.trim();
+  const avatar = document.getElementById('setProfileAvatar').value.trim();
+  if (!name) return toast('اسم المستخدم مطلوب', 'error');
+
+  try {
+    const updated = await apiFetch('/api/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify({ name, email, username, phone, job_title, bio, avatar })
+    });
+    State.user = updated;
+    toast('تم حفظ الملف الشخصي وتحديث البريد وكافة بياناتك بنجاح!', 'success');
+    await renderAll();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+});
+
+function renderAvatarElement(el, avatarUrl, name) {
+  if (avatarUrl && (avatarUrl.startsWith('data:image') || avatarUrl.startsWith('http'))) {
+    el.innerHTML = `<img src="${avatarUrl}" alt="Avatar">`;
+  } else {
+    el.textContent = name ? name[0] : '؟';
+  }
+}
+
+document.getElementById('btnOpenEditCode').addEventListener('click', () => {
+  const ws = currentWorkspace();
+  document.getElementById('newJoinCodeInput').value = ws?.join_code || '';
+  openModal('modalEditCode');
+});
+
+document.getElementById('btnSaveNewCode').addEventListener('click', async () => {
+  const ws = currentWorkspace(); if (!ws) return;
+  const custom_code = document.getElementById('newJoinCodeInput').value.trim();
+  if (!custom_code) return toast('يرجى إدخال الكود الجديد', 'error');
+
+  try {
+    const res = await apiFetch(`/api/workspaces/${ws.id}/code`, { method: 'PUT', body: JSON.stringify({ custom_code }) });
+    ws.join_code = res.join_code;
+    closeModal('modalEditCode');
+    toast('تم تحديث كود الانضمام بنجاح: ' + res.join_code, 'success');
+    await renderTeam();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+});
+
+function copyJoinCode() {
+  const code = document.getElementById('wsJoinCodeDisplay').textContent;
+  navigator.clipboard.writeText(code);
+  toast('تم نسخ كود الانضمام: ' + code, 'success');
+}
+window.copyJoinCode = copyJoinCode;
+
+async function toggleFav(id) {
+  await DB.toggleFavorite(id);
+  toast('تم تحديث المفضلة', 'success');
+  await renderAll();
+}
+window.toggleFav = toggleFav;
+
+document.getElementById('btnSaveSettings')?.addEventListener('click', async () => {
+  const ws = currentWorkspace(); if (!ws) return;
+  const currency = document.getElementById('setCurrency').value;
+  try {
+    await apiFetch(`/api/workspaces/${ws.id}/currency`, {
+      method: 'PUT',
+      body: JSON.stringify({ currency })
+    });
+    ws.currency = currency;
+    toast('تم حفظ العملة المعتمدة للمساحة وتحديث النظام بنجاح! 💱', 'success');
+    await renderAll();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+});
+
+// SMART AUTO-CATEGORIZATION FROM TRANSACTION NOTES
+document.getElementById('txNote')?.addEventListener('input', e => {
+  const val = e.target.value.trim().toLowerCase();
+  const catSel = document.getElementById('txCategory');
+  if (!catSel || !val) return;
+
+  const cats = DB.getAll('categories');
+  let matchCat = null;
+
+  if (val.includes('أوبر') || val.includes('كريم') || val.includes('بنزين') || val.includes('تاكسي') || val.includes('مواصلات')) {
+    matchCat = cats.find(c => c.name.includes('مواصلات') || c.name.includes('سيارة'));
+  } else if (val.includes('كارفور') || val.includes('سوبر') || val.includes('أكل') || val.includes('مطعم') || val.includes('خضار') || val.includes('لحم')) {
+    matchCat = cats.find(c => c.name.includes('طعام') || c.name.includes('مطاعم') || c.name.includes('طعام ومأكولات'));
+  } else if (val.includes('كهرباء') || val.includes('نت') || val.includes('إيجار') || val.includes('غاز') || val.includes('فاتورة')) {
+    matchCat = cats.find(c => c.name.includes('فواتير') || c.name.includes('خدمات'));
+  } else if (val.includes('دواء') || val.includes('صيدلية') || val.includes('طبيب') || val.includes('علاج')) {
+    matchCat = cats.find(c => c.name.includes('صحة') || c.name.includes('علاج'));
+  }
+
+  if (matchCat) {
+    catSel.value = matchCat.id;
+  }
+});
+
+let editingTxId = null;
+function openTxModal(tx = null) {
+  editingTxId = tx ? tx.id : null;
+  document.getElementById('txModalTitle').textContent = tx ? 'تعديل معاملة' : 'إضافة معاملة';
+  fillSelect(document.getElementById('txAccount'), DB.getAll('accounts'), { placeholder: 'اختر الحساب' });
+  fillSelect(document.getElementById('txCategory'), DB.getAll('categories'), { placeholder: 'اختر الفئة' });
+
+  document.getElementById('txAmount').value = tx ? tx.amount : '';
+  document.getElementById('txAccount').value = tx ? tx.account_id : '';
+  document.getElementById('txCategory').value = tx ? tx.category_id : '';
+  document.getElementById('txDate').value = tx ? tx.date : new Date().toISOString().slice(0, 10);
+  document.getElementById('txNote').value = tx ? tx.note : '';
+  document.getElementById('txIsFav').checked = tx ? !!tx.is_favorite : false;
+
+  openModal('modalTx');
+}
+
+document.getElementById('btnSaveTx').addEventListener('click', async () => {
+  const amount = parseFloat(document.getElementById('txAmount').value);
+  const account_id = document.getElementById('txAccount').value;
+  const category_id = document.getElementById('txCategory').value;
+  const date = document.getElementById('txDate').value;
+  const note = document.getElementById('txNote').value.trim();
+  const is_favorite = document.getElementById('txIsFav').checked ? 1 : 0;
+  const cat = DB.getById('categories', category_id);
+
+  if (!amount || amount <= 0 || !account_id || !category_id) {
+    toast('يرجى استكمال الحقول المطلوب', 'error'); return;
+  }
+
+  const payload = {
+    workspace_id: Session.currentWorkspaceId(),
+    account_id, category_id, type: cat ? cat.type : 'expense',
+    amount, date, note, is_favorite
+  };
+
+  if (editingTxId) {
+    await DB.update('transactions', editingTxId, payload);
+    toast('تم تحديث المعاملة بنجاح', 'success');
+  } else {
+    await DB.insert('transactions', payload);
+    toast('تمت إضافة المعاملة بنجاح', 'success');
+  }
+
+  closeModal('modalTx');
+  await renderAll();
+});
+
+function editTx(id) { openTxModal(DB.getById('transactions', id)); }
+async function deleteTx(id) {
+  if (!confirm('هل أنت متأكد من حذف هذه المعاملة؟')) return;
+  await DB.delete('transactions', id);
+  toast('تم حذف المعاملة', 'info');
+  await renderAll();
+}
+window.openTxModal = openTxModal;
+window.editTx = editTx;
+window.deleteTx = deleteTx;
+
+// Account Modal Triggers & CRUD
+let editingAccId = null;
+function openAccModal(accId = null) {
+  editingAccId = accId;
+  const acc = accId ? DB.getById('accounts', accId) : null;
+  document.getElementById('accModalTitle').textContent = acc ? 'تعديل حساب' : 'إضافة حساب مالى';
+  document.getElementById('accName').value = acc ? acc.name : '';
+  document.getElementById('accType').value = acc ? acc.type : 'cash';
+  document.getElementById('accBalance').value = acc ? acc.initial_balance : '';
+  openModal('modalAcc');
+}
+document.getElementById('btnAddAccPage').addEventListener('click', () => openAccModal());
+
+document.getElementById('btnSaveAcc').addEventListener('click', async () => {
+  const name = document.getElementById('accName').value.trim();
+  const type = document.getElementById('accType').value;
+  const initial_balance = parseFloat(document.getElementById('accBalance').value) || 0;
+  if (!name) return toast('اسم الحساب مطلوب', 'error');
+
+  const payload = { workspace_id: Session.currentWorkspaceId(), name, type, initial_balance };
+  if (editingAccId) await DB.update('accounts', editingAccId, payload);
+  else await DB.insert('accounts', payload);
+
+  closeModal('modalAcc');
+  toast('تم حفظ الحساب بنجاح', 'success');
+  await renderAll();
+});
+
+async function deleteAccount(id) {
+  if (!confirm('هل أنت تأكد من حذف هذا الحساب؟')) return;
+  await DB.delete('accounts', id);
+  toast('تم حذف الحساب', 'info');
+  await renderAll();
+}
+window.openAccModal = openAccModal;
+window.deleteAccount = deleteAccount;
+
+// Category Modal Triggers & CRUD
+let editingCatId = null;
+function openCatModal(catId = null) {
+  editingCatId = catId;
+  const cat = catId ? DB.getById('categories', catId) : null;
+  document.getElementById('catModalTitle').textContent = cat ? 'تعديل الفئة' : 'إضافة فئة';
+  document.getElementById('catName').value = cat ? cat.name : '';
+  document.getElementById('catType').value = cat ? cat.type : 'expense';
+  document.getElementById('catIcon').value = cat ? cat.icon : '📂';
+  document.getElementById('catColor').value = cat ? cat.color : '#0E9A73';
+  openModal('modalCat');
+}
+document.getElementById('btnAddCatPage').addEventListener('click', () => openCatModal());
+
+document.getElementById('btnSaveCat').addEventListener('click', async () => {
+  const name = document.getElementById('catName').value.trim();
+  const type = document.getElementById('catType').value;
+  const icon = document.getElementById('catIcon').value || '📂';
+  const color = document.getElementById('catColor').value;
+  if (!name) return toast('اسم الفئة مطلوب', 'error');
+
+  const payload = { workspace_id: Session.currentWorkspaceId(), name, type, icon, color };
+  if (editingCatId) await DB.update('categories', editingCatId, payload);
+  else await DB.insert('categories', payload);
+
+  closeModal('modalCat');
+  toast('تم حفظ الفئة بنجاح', 'success');
+  await renderAll();
+});
+
+async function deleteCat(id) {
+  if (!confirm('هل أنت تأكد من حذف الفئة؟')) return;
+  await DB.delete('categories', id);
+  toast('تم حذف الفئة', 'info');
+  await renderAll();
+}
+window.openCatModal = openCatModal;
+window.deleteCat = deleteCat;
+
+// Budget Modal Triggers & CRUD
+let editingBudId = null;
+function openBudModal(budId = null) {
+  editingBudId = budId;
+  fillSelect(document.getElementById('budCategory'), DB.getAll('categories'), { placeholder: 'اختر الفئة' });
+  const b = budId ? DB.getById('budgets', budId) : null;
+  document.getElementById('budModalTitle').textContent = b ? 'تعديل الميزانية' : 'إضافة ميزانية';
+  document.getElementById('budName').value = b ? b.name : '';
+  document.getElementById('budCategory').value = b ? b.category_id : '';
+  document.getElementById('budAmount').value = b ? b.amount : '';
+  openModal('modalBud');
+}
+document.getElementById('btnAddBudPage').addEventListener('click', () => openBudModal());
+
+document.getElementById('btnSaveBud').addEventListener('click', async () => {
+  const name = document.getElementById('budName').value.trim();
+  const category_id = document.getElementById('budCategory').value;
+  const amount = parseFloat(document.getElementById('budAmount').value);
+  if (!name || !category_id || !amount) return toast('استكمل بيانات الميزانية', 'error');
+
+  const payload = { workspace_id: Session.currentWorkspaceId(), name, category_id, amount };
+  if (editingBudId) await DB.update('budgets', editingBudId, payload);
+  else await DB.insert('budgets', payload);
+
+  closeModal('modalBud');
+  toast('تم حفظ الميزانية بنجاح', 'success');
+  await renderAll();
+});
+
+async function deleteBud(id) {
+  if (!confirm('هل أنت متأكد من حذف الميزانية؟')) return;
+  await DB.delete('budgets', id);
+  toast('تم حذف الميزانية', 'info');
+  await renderAll();
+}
+window.openBudModal = openBudModal;
+window.deleteBud = deleteBud;
+
+// Tag Modal Triggers & CRUD
+let editingTagId = null;
+function openTagModal(tagId = null) {
+  editingTagId = tagId;
+  const t = tagId ? DB.getById('tags', tagId) : null;
+  document.getElementById('tagModalTitle').textContent = t ? 'تعديل الوسم' : 'إضافة وسم';
+  document.getElementById('tagName').value = t ? t.name : '';
+  document.getElementById('tagIcon').value = t ? t.icon : '🏷️';
+  document.getElementById('tagColor').value = t ? t.color : '#2C6FEE';
+  openModal('modalTag');
+}
+document.getElementById('btnAddTagPage').addEventListener('click', () => openTagModal());
+
+document.getElementById('btnSaveTag').addEventListener('click', async () => {
+  const name = document.getElementById('tagName').value.trim();
+  const icon = document.getElementById('tagIcon').value || '🏷️';
+  const color = document.getElementById('tagColor').value;
+  if (!name) return toast('اسم الوسم مطلوب', 'error');
+
+  const payload = { workspace_id: Session.currentWorkspaceId(), name, icon, color };
+  if (editingTagId) await DB.update('tags', editingTagId, payload);
+  else await DB.insert('tags', payload);
+
+  closeModal('modalTag');
+  toast('تم حفظ الوسم بنجاح', 'success');
+  await renderAll();
+});
+
+async function deleteTag(id) {
+  if (!confirm('هل أنت متأكد من حذف الوسم؟')) return;
+  await DB.delete('tags', id);
+  toast('تم حذف الوسم', 'info');
+  await renderAll();
+}
+window.openTagModal = openTagModal;
+window.deleteTag = deleteTag;
+
+// Create Workspace Action
+document.getElementById('btnCreateWs').addEventListener('click', () => openModal('modalWs'));
+document.getElementById('btnSaveWs').addEventListener('click', async () => {
+  const name = document.getElementById('wsName').value.trim();
+  const custom_code = document.getElementById('wsCustomCode').value.trim();
+  if (!name) return toast('اسم المساحة مطلوب', 'error');
+
+  try {
+    const newWs = await apiFetch('/api/workspaces', { method: 'POST', body: JSON.stringify({ name, custom_code, type: 'shared', icon: '👨‍👩‍👧‍👦' }) });
+    State.workspaces.push(newWs);
+    Session.setWorkspace(newWs.id);
+    await DB.loadWorkspaceData();
+    closeModal('modalWs');
+    toast('تم إنشاء المساحة بنجاح! كود الانضمام: ' + newWs.join_code, 'success');
+    await renderAll();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+});
+
+// Join Workspace Modal Action
+document.getElementById('btnJoinWsByCode').addEventListener('click', () => openModal('modalJoinWs'));
+document.getElementById('btnSubmitJoinCode').addEventListener('click', async () => {
+  const code = document.getElementById('joinCodeInput').value.trim();
+  if (!code) return toast('يرجى إدخال الكود', 'error');
+  try {
+    const res = await apiFetch('/api/workspaces/join-request', { method: 'POST', body: JSON.stringify({ join_code: code }) });
+    closeModal('modalJoinWs');
+    toast(res.message, 'success');
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+});
+
+// PDF & Excel Exports
+document.getElementById('btnExportPDF').addEventListener('click', () => window.print());
+document.getElementById('btnExportExcel').addEventListener('click', () => {
+  const txs = DB.getAll('transactions');
+  let csv = '\uFEFFالوصف,الفئة,الحساب,التاريخ,المبلغ,النوع\n';
+  txs.forEach(t => {
+    const cat = DB.getById('categories', t.category_id)?.name || '';
+    const acc = DB.getById('accounts', t.account_id)?.name || '';
+    csv += `"${t.note || ''}","${cat}","${acc}","${t.date}","${t.amount}","${t.type}"\n`;
+  });
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `تقرير_المصروفات_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  toast('تم تصدير ملف Excel بنجاح', 'success');
+});
+
+function renderWorkspaceSwitcher() {
+  const ws = currentWorkspace(); if (!ws) return;
+  document.getElementById('wsTriggerName').textContent = ws.name;
+  document.getElementById('wsTriggerRole').textContent = ROLE_LABELS[ws.my_role || 'viewer'];
+
+  document.getElementById('wsMenuList').innerHTML = State.workspaces.map(w => `
+    <div class="ws-opt ${w.id === ws.id ? 'current' : ''}" onclick="switchWs('${w.id}')">
+      <b>${w.name}</b>
+    </div>
+  `).join('');
+}
+
+async function switchWs(wsId) {
+  Session.setWorkspace(wsId);
+  await DB.loadWorkspaceData();
+  document.getElementById('wsMenu').classList.remove('open');
+  await renderAll();
+}
+window.switchWs = switchWs;
+
+document.getElementById('wsTrigger').addEventListener('click', e => {
+  e.stopPropagation();
+  document.getElementById('wsMenu').classList.toggle('open');
+});
+
+async function renderAll() {
+  const user = currentUser();
+  if (user) {
+    document.getElementById('umName').textContent = user.name || '';
+    document.getElementById('umEmail').textContent = user.email || '';
+    renderAvatarElement(document.getElementById('userAvatarBtn'), user.avatar, user.name);
+  }
+
+  // Restore sidebar collapse state if saved
+  if (localStorage.getItem('mahfaza_sidebar_collapsed') === '1' && window.innerWidth > 1024) {
+    document.getElementById('sidebar').classList.add('collapsed');
+  }
+
+  if (isSuperAdmin()) {
+    document.getElementById('wsSwitcher').style.display = 'none';
+    document.getElementById('btnQuickAdd').style.display = 'none';
+    document.getElementById('appRoleTag').textContent = 'Super Admin System';
+    document.getElementById('miniBalLabel').textContent = 'نظام الإشراف';
+    document.getElementById('miniBalance').textContent = 'Super Admin';
+
+    if (currentView === 'admin_overview' || currentView === 'dashboard') await renderAdminOverview();
+    else if (currentView === 'admin_users') await renderAdminUsers();
+    else if (currentView === 'admin_workspaces') await renderAdminWorkspaces();
+    else if (currentView === 'admin_transactions') await renderAdminTransactions();
+    else if (currentView === 'admin_audit') await renderAdminAudit();
+    else if (currentView === 'settings') renderSettingsView();
+  } else {
+    document.getElementById('wsSwitcher').style.display = 'block';
+    document.getElementById('btnQuickAdd').style.display = 'inline-flex';
+    document.getElementById('appRoleTag').textContent = 'SQLite Full Stack';
+    document.getElementById('miniBalLabel').textContent = 'إجمالي الرصيد';
+
+    const renderers = {
+      dashboard: renderDashboard, transactions: renderTransactions, favorites: renderFavorites,
+      accounts: renderAccounts, categories: renderCategories, budgets: renderBudgets,
+      tags: renderTags, reports: renderReports, team: renderTeam, settings: renderSettingsView
+    };
+    await renderers[currentView]?.();
+
+    const totalBal = DB.getAll('accounts').reduce((s, a) => s + a.current_balance, 0);
+    document.getElementById('miniBalance').textContent = fmtMoney(totalBal);
+
+    renderWorkspaceSwitcher();
+  }
+}
+
+
+
+
+
+document.getElementById('userAvatarBtn').addEventListener('click', e => {
+  e.stopPropagation();
+  document.getElementById('userMenu').classList.toggle('open');
+});
+document.addEventListener('click', () => document.getElementById('userMenu').classList.remove('open'));
+
+document.getElementById('btnLogout').addEventListener('click', () => {
+  Session.clear();
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('authScreen').style.display = 'flex';
+  switchAuthTab('login');
+});
+
+async function enterApp() {
+  await DB.init();
+  const savedTheme = localStorage.getItem('mahfaza_theme') || 'light';
+  setTheme(savedTheme);
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  buildNav();
+  if (isSuperAdmin()) await goTo('admin_overview');
+  else await goTo('dashboard');
+}
+
+(async function init() {
+  switchAuthTab('login');
+  if (Session.isLoggedIn()) {
+    try { await enterApp(); }
+    catch (e) {
+      Session.clear();
+      document.getElementById('app').style.display = 'none';
+      document.getElementById('authScreen').style.display = 'flex';
+    }
+  } else {
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('authScreen').style.display = 'flex';
+  }
+})();
+</script>
+</body>
+</html>

@@ -854,7 +854,8 @@ tbody tr:last-child td{border-bottom:none;}
               <input class="input filter-dropdown" id="txFilterTo" type="date" style="width:130px;padding:0 6px;" title="إلى تاريخ">
             </div>
 
-            <!-- RESET BUTTON -->
+            <!-- TRANSFER & RESET BUTTONS -->
+            <button class="btn filter-dropdown-btn" onclick="openTransferModal()" title="إجراء تحويل مالي بين الحسابات">↔️ تحويل بين الحسابات</button>
             <button class="btn filter-dropdown-btn" id="btnResetTxFilters" title="إعادة تصفير">🔄 تصفير</button>
           </div>
           <div class="table-wrap">
@@ -1548,6 +1549,8 @@ tbody tr:last-child td{border-bottom:none;}
       <button class="btn btn-primary" id="btnSubmitFundRequest">إرسال الطلب لمالك الأسرة 🚀</button>
     </div>
   </div>
+</div>
+
 <!-- Modal: Transfer Funds Between Accounts -->
 <div class="overlay" id="modalTransferFunds">
   <div class="modal" style="max-width:500px;">
@@ -2017,6 +2020,7 @@ function buildNav() {
       { id: 'transactions', icon: '🧾', label: 'المعاملات' },
       { id: 'favorites', icon: '❤️', label: 'المفضلة' },
       { id: 'accounts', icon: '🏦', label: 'الحسابات' },
+      { id: 'transfer_action', icon: '↔️', label: 'تحويل بين الحسابات' },
       { id: 'categories', icon: '📂', label: 'الفئات' },
       { id: 'budgets', icon: '💵', label: 'الميزانيات' },
       { id: 'tags', icon: '🏷️', label: 'الوسوم' },
@@ -2033,7 +2037,13 @@ function buildNav() {
     </button>
   `).join('');
 
-  document.querySelectorAll('[data-nav]').forEach(b => b.addEventListener('click', () => goTo(b.dataset.nav)));
+  document.querySelectorAll('[data-nav]').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.nav === 'transfer_action') {
+      openTransferModal();
+    } else {
+      goTo(b.dataset.nav);
+    }
+  }));
 }
 
 const PAGE_TITLES = {
@@ -2894,32 +2904,36 @@ function renderAccounts() {
 
 function openTransferModal() {
   const ws = currentWorkspace();
-  if (!ws) return;
+  if (!ws) return toast('يرجى حديد مساحة أولاً', 'error');
 
   const accounts = DB.getAll('accounts');
-  if (accounts.length < 2) {
+  if (!accounts || accounts.length < 2) {
     return toast('يلزم وجود حسابين ماليين على الأقل لتتمكن من إجراء تحويل بينهما! قم بإنشاء حساب جديد أولاً.', 'error');
   }
 
   const fromSel = document.getElementById('transferFromAccount');
   const toSel = document.getElementById('transferToAccount');
 
-  fillSelect(fromSel, accounts, {
-    labelFn: a => `${a.name} (الرصيد: ${fmtMoney(a.current_balance || a.initial_balance || 0)})`
-  });
-
-  fillSelect(toSel, accounts, {
-    labelFn: a => `${a.name} (الرصيد: ${fmtMoney(a.current_balance || a.initial_balance || 0)})`
-  });
-
-  if (accounts.length >= 2) {
-    fromSel.value = accounts[0].id;
-    toSel.value = accounts[1].id;
+  if (fromSel) {
+    fillSelect(fromSel, accounts, {
+      labelFn: a => `${a.name} (الرصيد: ${fmtMoney(a.current_balance !== undefined ? a.current_balance : a.initial_balance || 0)})`
+    });
   }
 
-  document.getElementById('transferAmountInput').value = '';
-  document.getElementById('transferDateInput').value = new Date().toISOString().slice(0, 10);
-  document.getElementById('transferNoteInput').value = '';
+  if (toSel) {
+    fillSelect(toSel, accounts, {
+      labelFn: a => `${a.name} (الرصيد: ${fmtMoney(a.current_balance !== undefined ? a.current_balance : a.initial_balance || 0)})`
+    });
+  }
+
+  if (accounts.length >= 2) {
+    if (fromSel) fromSel.value = accounts[0].id;
+    if (toSel) toSel.value = accounts[1].id;
+  }
+
+  if (document.getElementById('transferAmountInput')) document.getElementById('transferAmountInput').value = '';
+  if (document.getElementById('transferDateInput')) document.getElementById('transferDateInput').value = new Date().toISOString().slice(0, 10);
+  if (document.getElementById('transferNoteInput')) document.getElementById('transferNoteInput').value = '';
 
   openModal('modalTransferFunds');
 }

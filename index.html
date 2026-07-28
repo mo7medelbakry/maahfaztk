@@ -1695,8 +1695,12 @@ function toast(msg, type = 'info') {
 }
 function openModal(id) {
   const el = document.getElementById(id);
-  if (el) el.classList.add('active');
-  else console.error('Modal not found:', id);
+  if (el) {
+    el.classList.add('active');
+    if (id === 'modalRecurringBills') {
+      renderRecurringBills();
+    }
+  } else console.error('Modal not found:', id);
 }
 function closeModal(id) {
   const el = document.getElementById(id);
@@ -3228,7 +3232,12 @@ let editingRecBillId = null;
 async function renderRecurringBills() {
   const ws = currentWorkspace(); if (!ws) return;
   try {
-    const bills = await apiFetch(`/api/recurring-bills?workspace_id=${ws.id}`);
+    const [bills, cats, accs] = await Promise.all([
+      apiFetch(`/api/recurring-bills?workspace_id=${ws.id}`),
+      apiFetch(`/api/categories?workspace_id=${ws.id}`),
+      apiFetch(`/api/accounts?workspace_id=${ws.id}`)
+    ]);
+
     const modalList = document.getElementById('recurringBillsListModal');
     if (modalList) {
       if (!bills || !bills.length) {
@@ -3260,20 +3269,19 @@ async function renderRecurringBills() {
       }
     }
 
-    const cats = DB.getAll('categories');
-    const accs = DB.getAll('accounts');
-
     const catSelect = document.getElementById('recBillCategorySelect');
     if (catSelect) {
       catSelect.innerHTML = '<option value="">-- بدون فئة مخصصة --</option>' +
-        cats.map(c => `<option value="${c.id}">${c.icon || ''} ${c.name}</option>`).join('');
+        (cats || []).map(c => `<option value="${c.id}">${c.icon || ''} ${c.name}</option>`).join('');
     }
     const accSelect = document.getElementById('recBillAccountSelect');
     if (accSelect) {
       accSelect.innerHTML = '<option value="">-- اختر حساب الخصم --</option>' +
-        accs.map(a => `<option value="${a.id}">${a.name} (رصيد: ${fmtMoney(a.current_balance || a.initial_balance || 0)})</option>`).join('');
+        (accs || []).map(a => `<option value="${a.id}">${a.name} (رصيد: ${fmtMoney(a.current_balance || a.initial_balance || 0)})</option>`).join('');
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error('renderRecurringBills error:', e);
+  }
 }
 window.renderRecurringBills = renderRecurringBills;
 

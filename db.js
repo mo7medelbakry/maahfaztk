@@ -163,6 +163,7 @@ function initSchema() {
     { table: 'workspace_members', column: 'can_add_expenses', def: 'INTEGER DEFAULT 1' },
     { table: 'workspace_members', column: 'can_view_reports', def: 'INTEGER DEFAULT 1' },
     { table: 'workspace_members', column: 'allowed_categories', def: 'TEXT DEFAULT ""' },
+    { table: 'audit_log', column: 'workspace_id', def: 'TEXT' },
   ];
 
   for (const m of columnMigrations) {

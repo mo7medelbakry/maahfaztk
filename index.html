@@ -1058,10 +1058,9 @@ tbody tr:last-child td{border-bottom:none;}
                 <input class="input" id="setProfilePhone" placeholder="010XXXXXXXX">
               </div>
             </div>
-              <div class="field-group">
-                <label>المسمى / الدور العائلي</label>
-                <input class="input" id="setProfileJobTitle" placeholder="مثال: رب الأسرة / الأم">
-              </div>
+            <div class="field-group" style="margin-top:12px;">
+              <label>المسمى / الدور العائلي</label>
+              <input class="input" id="setProfileJobTitle" placeholder="مثال: رب الأسرة / الأم">
             </div>
             <div class="field-group" style="margin-top:12px;">
               <label>نبذة شخصية (Bio)</label>
@@ -1093,9 +1092,60 @@ tbody tr:last-child td{border-bottom:none;}
         <div class="card">
           <div class="card-head" style="display:flex;justify-content:space-between;align-items:center;">
             <div class="card-title">📜 سجل الأنشطة والتدقيق المفصل بالمنصة</div>
-            <button class="btn btn-outline btn-sm" onclick="renderAuditLogView()">🔄 تحديث السجل</button>
           </div>
           <p class="muted" style="font-size:12px;margin-bottom:14px;">سجل زمني حي لكافة العمليات والتعديلات والإضافات التي قام بها أعضاء المساحة لضمان الشفافية والأمان.</p>
+
+          <!-- AUDIT LOG FILTERS BAR -->
+          <div class="filters-bar" style="margin-bottom:16px;">
+            <!-- SEARCH FIELD -->
+            <div class="compact-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+              <input class="input filter-dropdown" id="auditSearch" placeholder="بحث بالأنشطة والمستخدمين..." oninput="filterAuditLogs()">
+            </div>
+
+            <!-- ACTION TYPE DROPDOWN -->
+            <select class="select filter-dropdown" id="auditFilterAction" onchange="filterAuditLogs()">
+              <option value="">نوع الحدث 📝 (الكل)</option>
+              <option value="income">تسجيل إيراد 💰</option>
+              <option value="expense">تسجيل مصروف 💸</option>
+              <option value="create">إضافة / إنشاء ➕</option>
+              <option value="update">تعديل / تحديث ✏️</option>
+              <option value="delete">حذف 🗑️</option>
+              <option value="login">تسجيل الدخول / أمان 🔐</option>
+            </select>
+
+            <!-- WORKSPACE DROPDOWN -->
+            <select class="select filter-dropdown" id="auditFilterWorkspace" onchange="filterAuditLogs()">
+              <option value="">المساحة 🗂️ (الكل)</option>
+            </select>
+
+            <!-- USER / ACTOR DROPDOWN -->
+            <select class="select filter-dropdown" id="auditFilterActor" onchange="filterAuditLogs()">
+              <option value="">الفاعل / العضو 👤 (الكل)</option>
+            </select>
+
+            <!-- DATE DROPDOWN SELECT -->
+            <select class="select filter-dropdown" id="auditFilterDateSelect" onchange="handleAuditDateDropdownChange(this.value)">
+              <option value="all">التاريخ 📅 (الكل)</option>
+              <option value="today">اليوم</option>
+              <option value="yesterday">الأمس</option>
+              <option value="this_week">هذا الأسبوع</option>
+              <option value="this_month">هذا الشهر</option>
+              <option value="custom">نطاق مخصص ✏️</option>
+            </select>
+
+            <!-- HIDDEN CUSTOM DATE RANGE PICKER -->
+            <div id="auditCustomDateRangeBox" class="hidden" style="display:none;align-items:center;gap:6px;">
+              <input class="input filter-dropdown" id="auditFilterFrom" type="date" style="width:130px;padding:0 6px;" onchange="filterAuditLogs()" title="من تاريخ">
+              <span style="font-size:11px;font-weight:700;color:var(--ink-faint);">إلى</span>
+              <input class="input filter-dropdown" id="auditFilterTo" type="date" style="width:130px;padding:0 6px;" onchange="filterAuditLogs()" title="إلى تاريخ">
+            </div>
+
+            <!-- REFRESH & RESET BUTTONS SIDE-BY-SIDE -->
+            <button class="btn filter-dropdown-btn" onclick="renderAuditLogView()" title="تحديث السجل والبيانات">🔄 تحديث السجل</button>
+            <button class="btn filter-dropdown-btn" id="btnResetAuditFilters" onclick="resetAuditFilters()" title="إعادة تصفير الفلاتر">🔄 تصفير</button>
+          </div>
+
           <div class="table-wrap">
             <table>
               <thead><tr><th>الوقت والتاريخ</th><th>المستجيب / الفاعل</th><th>الحدث / الإجراء</th><th>الهدف / البيان</th><th>بيانات إضافية</th></tr></thead>
@@ -1945,17 +1995,40 @@ function buildNav() {
   document.querySelectorAll('[data-nav]').forEach(b => b.addEventListener('click', () => goTo(b.dataset.nav)));
 }
 
+const PAGE_TITLES = {
+  dashboard: { title: 'لوحة التحكم', sub: 'نظرة عامة على وضعك المالي' },
+  transactions: { title: 'المعاملات المالية', sub: 'سجل جميع الإيرادات والمصروفات' },
+  favorites: { title: 'المفضلة', sub: 'المعاملات المالية المميزة' },
+  accounts: { title: 'الحسابات المالية', sub: 'إدارة البنوك والخزائن والمحافظ' },
+  categories: { title: 'الفئات والتصنيفات', sub: 'تنظيم المصروفات والإيرادات' },
+  budgets: { title: 'الميزانيات والتخطيط', sub: 'مراقبة سقف الإنفاق الشهري' },
+  tags: { title: 'الوسوم والبطاقات', sub: 'تصنيف المعاملات بالأوسمة' },
+  reports: { title: 'التقارير المالية', sub: 'تحليلات ورسوم بيانية مفصلة' },
+  team: { title: 'الفريق والأسرة', sub: 'إدارة الأعضاء والميزانيات المخصصة' },
+  audit_log: { title: 'سجل الأنشطة والتدقيق', sub: 'سجل زمني حي لكافة العمليات بالتفصيل' },
+  settings: { title: 'إعدادات المنصة', sub: 'تعديل البروفايل والعملة والتفضيلات' },
+  admin_overview: { title: 'لوحة التحكم بالنظام', sub: 'نظرة عامة وشاملة للسوبر أدمن' },
+  admin_users: { title: 'إدارة المستخدمين', sub: 'صلاحيات وحالات كافة المستخدمين' },
+  admin_workspaces: { title: 'المساحات والحسابات', sub: 'رقابة جميع المساحات المسجلة' },
+  admin_transactions: { title: 'رقابة المعاملات الشاملة', sub: 'جميع معاملات النظام الحية' },
+  admin_audit: { title: 'سجل الأمان والنشاط', sub: 'رقابة أمان وسجلات النظام العامة' },
+};
+
 async function goTo(view) {
   closeMobileSidebar();
   currentView = view;
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + view)?.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.nav === view));
+
+  const pageMeta = PAGE_TITLES[view] || { title: 'لوحة التحكم', sub: 'محفظة' };
+  if (document.getElementById('pageTitle')) document.getElementById('pageTitle').textContent = pageMeta.title;
+  if (document.getElementById('pageSub')) document.getElementById('pageSub').textContent = pageMeta.sub;
+
   if (view === 'audit_log') {
     await renderAuditLogView();
-  } else {
-    await renderAll();
   }
+  await renderAll();
 }
 
 async function renderAdminOverview() {
@@ -3465,31 +3538,153 @@ function exportFinancialReport() {
 }
 window.exportFinancialReport = exportFinancialReport;
 
+let rawAuditLogs = [];
+
 async function renderAuditLogView() {
   try {
-    const logs = await apiFetch('/api/audit-log');
-    const tbody = document.getElementById('auditLogBody');
-    if (!tbody) return;
-
-    if (!logs || !logs.length) {
-      tbody.innerHTML = '<tr><td colspan="5" class="muted">لا توجد أنشطة مسجلة بعد</td></tr>';
-      return;
-    }
-
-    tbody.innerHTML = logs.map(l => `
-      <tr>
-        <td class="muted" style="font-size:12px;">${new Date(l.created_at).toLocaleString('ar-EG')}</td>
-        <td><b>${l.actor_name || 'النظام'}</b> ${l.actor_email ? `<span class="muted" style="font-size:11px;">(${l.actor_email})</span>` : ''}</td>
-        <td><span class="badge" style="background:var(--surface-alt);">${l.action}</span></td>
-        <td>${l.target || '—'}</td>
-        <td class="muted" style="font-size:12px;">${l.meta || '—'}</td>
-      </tr>
-    `).join('');
+    rawAuditLogs = await apiFetch('/api/audit-log');
+    populateAuditActorSelect(rawAuditLogs);
+    filterAuditLogs();
   } catch (e) {
     toast(e.message, 'error');
   }
 }
 window.renderAuditLogView = renderAuditLogView;
+
+function populateAuditActorSelect(logs) {
+  const actorSel = document.getElementById('auditFilterActor');
+  if (actorSel) {
+    const actorsMap = new Map();
+    (logs || []).forEach(l => {
+      if (l.actor_name) actorsMap.set(l.actor_name, l.actor_name);
+    });
+    actorSel.innerHTML = '<option value="">الفاعل / العضو 👤 (الكل)</option>' +
+      Array.from(actorsMap.values()).map(name => `<option value="${name}">${name}</option>`).join('');
+  }
+
+  const wsSel = document.getElementById('auditFilterWorkspace');
+  if (wsSel && State.workspaces) {
+    wsSel.innerHTML = '<option value="">المساحة 🗂️ (الكل)</option>' +
+      (State.workspaces || []).map(w => `<option value="${w.id}">${w.name}</option>`).join('');
+  }
+}
+
+function handleAuditDateDropdownChange(val) {
+  const customBox = document.getElementById('auditCustomDateRangeBox');
+  if (val === 'custom') {
+    if (customBox) customBox.style.display = 'inline-flex';
+  } else {
+    if (customBox) customBox.style.display = 'none';
+    if (document.getElementById('auditFilterFrom')) document.getElementById('auditFilterFrom').value = '';
+    if (document.getElementById('auditFilterTo')) document.getElementById('auditFilterTo').value = '';
+  }
+  filterAuditLogs();
+}
+window.handleAuditDateDropdownChange = handleAuditDateDropdownChange;
+
+function resetAuditFilters() {
+  if (document.getElementById('auditSearch')) document.getElementById('auditSearch').value = '';
+  if (document.getElementById('auditFilterAction')) document.getElementById('auditFilterAction').value = '';
+  if (document.getElementById('auditFilterWorkspace')) document.getElementById('auditFilterWorkspace').value = '';
+  if (document.getElementById('auditFilterActor')) document.getElementById('auditFilterActor').value = '';
+  if (document.getElementById('auditFilterDateSelect')) document.getElementById('auditFilterDateSelect').value = 'all';
+  if (document.getElementById('auditFilterFrom')) document.getElementById('auditFilterFrom').value = '';
+  if (document.getElementById('auditFilterTo')) document.getElementById('auditFilterTo').value = '';
+  if (document.getElementById('auditCustomDateRangeBox')) document.getElementById('auditCustomDateRangeBox').style.display = 'none';
+  filterAuditLogs();
+}
+window.resetAuditFilters = resetAuditFilters;
+
+function filterAuditLogs() {
+  const tbody = document.getElementById('auditLogBody');
+  if (!tbody) return;
+
+  const search = document.getElementById('auditSearch')?.value.trim().toLowerCase() || '';
+  const actionCategory = document.getElementById('auditFilterAction')?.value || '';
+  const selectedWs = document.getElementById('auditFilterWorkspace')?.value || '';
+  const actor = document.getElementById('auditFilterActor')?.value || '';
+  const dateRange = document.getElementById('auditFilterDateSelect')?.value || 'all';
+  const fromDate = document.getElementById('auditFilterFrom')?.value || '';
+  const toDate = document.getElementById('auditFilterTo')?.value || '';
+
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay());
+  const startOfWeekStr = startOfWeek.toISOString().slice(0, 10);
+
+  const startOfMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+
+  const filtered = (rawAuditLogs || []).filter(l => {
+    // 1. Text Search Filter
+    if (search) {
+      const matchActor = (l.actor_name || '').toLowerCase().includes(search);
+      const matchEmail = (l.actor_email || '').toLowerCase().includes(search);
+      const matchAction = (l.action || '').toLowerCase().includes(search);
+      const matchTarget = (l.target || '').toLowerCase().includes(search);
+      const matchMeta = (l.meta || '').toLowerCase().includes(search);
+      if (!matchActor && !matchEmail && !matchAction && !matchTarget && !matchMeta) return false;
+    }
+
+    // 2. Action Category Filter
+    if (actionCategory) {
+      const act = (l.action || '').toLowerCase();
+      if (actionCategory === 'income' && !act.includes('إيراد') && !act.includes('income')) return false;
+      if (actionCategory === 'expense' && !act.includes('مصروف') && !act.includes('expense')) return false;
+      if (actionCategory === 'create' && !act.includes('create') && !act.includes('add') && !act.includes('إنشاء') && !act.includes('إضافة')) return false;
+      if (actionCategory === 'update' && !act.includes('update') && !act.includes('edit') && !act.includes('تعديل')) return false;
+      if (actionCategory === 'delete' && !act.includes('delete') && !act.includes('remove') && !act.includes('حذف')) return false;
+      if (actionCategory === 'login' && !act.includes('login') && !act.includes('auth') && !act.includes('دخول')) return false;
+    }
+
+    // 3. Workspace Filter
+    if (selectedWs && l.workspace_id && l.workspace_id !== selectedWs) return false;
+
+    // 4. Actor Filter
+    if (actor && l.actor_name !== actor) return false;
+
+    // 5. Date Range Filter
+    const itemDate = (l.created_at || '').slice(0, 10);
+    if (dateRange === 'today' && itemDate !== todayStr) return false;
+    if (dateRange === 'yesterday' && itemDate !== yesterdayStr) return false;
+    if (dateRange === 'this_week' && itemDate < startOfWeekStr) return false;
+    if (dateRange === 'this_month' && itemDate < startOfMonthStr) return false;
+    if (dateRange === 'custom') {
+      if (fromDate && itemDate < fromDate) return false;
+      if (toDate && itemDate > toDate) return false;
+    }
+
+    return true;
+  });
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="muted" style="text-align:center;padding:16px;">لا توجد أنشطة مطابقة لشروط الفلترة الحالية 🔍</td></tr>';
+    return;
+  }
+
+function cleanActorName(name, email) {
+  if (!name || name.includes('???')) {
+    if (email && email.includes('@')) {
+      return email.split('@')[0];
+    }
+    return 'عضو بالمساحة';
+  }
+  return name;
+}
+
+  tbody.innerHTML = filtered.map(l => `
+    <tr>
+      <td class="muted" style="font-size:12px;">${new Date(l.created_at).toLocaleString('ar-EG')}</td>
+      <td><b>${cleanActorName(l.actor_name, l.actor_email)}</b> ${l.actor_email ? `<span class="muted" style="font-size:11px;">(${l.actor_email})</span>` : ''}</td>
+      <td><span class="badge" style="background:var(--surface-alt);">${l.action}</span></td>
+      <td>${l.target || '—'}</td>
+      <td class="muted" style="font-size:12px;">${l.meta || '—'}</td>
+    </tr>
+  `).join('');
+}
 
 document.getElementById('btnSaveMemberPermissions')?.addEventListener('click', async () => {
   const memberId = document.getElementById('editMemberId').value;

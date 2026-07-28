@@ -48,14 +48,19 @@ function parseBody(req) {
   });
 }
 
-function logAudit(actorId, action, target, meta) {
+function logAudit(actorId, action, target, meta, workspaceId) {
   try {
     const id = 'log_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
-    db.prepare('INSERT INTO audit_log (id, actor_id, action, target, meta, created_at) VALUES (?, ?, ?, ?, ?, ?)').run(
-      id, actorId, action, target || '', meta || '', new Date().toISOString()
+    db.prepare('INSERT INTO audit_log (id, actor_id, action, target, meta, workspace_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
+      id, actorId, action, target || '', meta || '', workspaceId || null, new Date().toISOString()
     );
   } catch (e) {
-    console.error('Audit log error:', e);
+    try {
+      const id = 'log_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+      db.prepare('INSERT INTO audit_log (id, actor_id, action, target, meta, created_at) VALUES (?, ?, ?, ?, ?, ?)').run(
+        id, actorId, action, target || '', meta || '', new Date().toISOString()
+      );
+    } catch (err) {}
   }
 }
 
@@ -960,6 +965,8 @@ const server = http.createServer(async (req, res) => {
       `).run(id, workspace_id, account_id, category_id, type, parseFloat(amount), date || now.slice(0, 10), note || '', is_favorite ? 1 : 0, currentUser.id, now);
 
       recalcAccountBalance(account_id);
+      const actionType = type === 'income' ? 'تسجيل إيراد 💰' : 'تسجيل مصروف 💸';
+      logAudit(currentUser.id, actionType, (note || type) + ` (${amount} ج.م)`, `المبلغ: ${amount} ج.م`, workspace_id);
       return sendJSON(res, db.prepare('SELECT * FROM transactions WHERE id = ?').get(id));
     }
 
@@ -980,6 +987,7 @@ const server = http.createServer(async (req, res) => {
 
       recalcAccountBalance(oldTx.account_id);
       if (account_id !== oldTx.account_id) recalcAccountBalance(account_id);
+      logAudit(currentUser.id, 'تعديل معاملة ✏️', (note || type) + ` (${amount} ج.م)`, `المبلغ: ${amount} ج.م`, oldTx.workspace_id);
       return sendJSON(res, db.prepare('SELECT * FROM transactions WHERE id = ?').get(txMatch[1]));
     }
 
@@ -992,6 +1000,7 @@ const server = http.createServer(async (req, res) => {
 
       db.prepare('UPDATE transactions SET is_deleted = 1 WHERE id = ?').run(txMatch[1]);
       recalcAccountBalance(tx.account_id);
+      logAudit(currentUser.id, 'حذف معاملة 🗑️', (tx.note || tx.type) + ` (${tx.amount} ج.م)`, `المبلغ: ${tx.amount} ج.م`, tx.workspace_id);
       return sendJSON(res, { success: true });
     }
 

@@ -224,16 +224,16 @@ button,input,select,textarea{font-family:inherit;}
 .topbar{
   position:sticky;top:0;z-index:15;background:var(--bg);opacity:.96;backdrop-filter:blur(12px);
   display:flex;align-items:center;justify-content:space-between;
-  padding:16px 26px;border-bottom:1px solid var(--line);
-  gap:16px;flex-wrap:wrap;transition:background .25s var(--ease);
+  padding:12px 24px;border-bottom:1px solid var(--line);
+  gap:12px;flex-wrap:wrap;transition:background .25s var(--ease);
 }
-.topbar h1{font-size:20.5px;margin:0;font-weight:800;}
-.topbar .sub{font-size:12px;color:var(--ink-faint);margin-top:2px;}
-.topbar-actions{display:flex;gap:10px;align-items:center;}
+.topbar h1{font-size:19px;margin:0;font-weight:800;}
+.topbar .sub{font-size:11.5px;color:var(--ink-faint);margin-top:1px;}
+.topbar-actions{display:flex;gap:8px;align-items:center;}
 
 .btn{
   display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;
-  border-radius:12px;padding:9.5px 16px;font-weight:700;font-size:13.5px;
+  border-radius:12px;padding:8px 14px;font-weight:700;font-size:13px;
   transition:transform .15s var(--ease),box-shadow .15s var(--ease),background .15s;
   white-space:nowrap;
 }
@@ -245,18 +245,18 @@ button,input,select,textarea{font-family:inherit;}
 .btn-outline{background:transparent;color:var(--ink-soft);border:1px solid var(--line);}
 .btn-outline:hover{border-color:var(--primary);color:var(--primary);}
 .btn-danger-ghost{background:var(--danger-soft);color:var(--danger);}
-.btn-sm{padding:7px 12px;font-size:12.5px;border-radius:10px;}
+.btn-sm{padding:6px 10px;font-size:12px;border-radius:10px;}
 
 .icon-btn{
-  width:38px;height:38px;border-radius:12px;border:1px solid var(--line);background:var(--surface);
+  width:36px;height:36px;border-radius:11px;border:1px solid var(--line);background:var(--surface);
   display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-soft);
-  transition:all .15s var(--ease);font-size:16px;
+  transition:all .15s var(--ease);font-size:15px;
 }
 .icon-btn:hover{background:var(--surface-alt);color:var(--primary);border-color:var(--primary-soft);}
 .fav-btn{font-size:16px;background:none;border:none;cursor:pointer;padding:4px;transition:transform .15s var(--ease);}
 .fav-btn:hover{transform:scale(1.25);}
 
-.content{padding:24px 28px 60px;flex:1;}
+.content{padding:20px 24px 36px;flex:1;}
 .view{display:none;animation:fadeUp .3s var(--ease);}
 .view.active{display:block;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
@@ -659,7 +659,7 @@ tbody tr:last-child td{border-bottom:none;}
       </div>
       <div class="topbar-actions">
         <!-- REPORT EXPORT BUTTON -->
-        <button class="btn btn-ghost btn-sm" onclick="exportFinancialReport()" title="طباعة وتصدير تقرير مالى ملخص">📄 تصدير تقرير</button>
+        <button class="btn btn-ghost btn-sm" id="btnExportReport" onclick="exportFinancialReport()" title="طباعة وتصدير تقرير مالى ملخص">📄 تصدير تقرير</button>
 
         <!-- MULTI-ACTION QUICK ADD BUTTON -->
         <div class="quick-add-wrap">
@@ -695,7 +695,7 @@ tbody tr:last-child td{border-bottom:none;}
         </div>
 
         <!-- RECURRING BILLS BUTTON -->
-        <button class="btn btn-ghost btn-sm" onclick="openModal('modalRecurringBills')" title="جدولة وتذكير الفواتير الدورية">📅 الفواتير الدورية</button>
+        <button class="btn btn-ghost btn-sm" id="btnRecurringBills" onclick="openModal('modalRecurringBills')" title="جدولة وتذكير الفواتير الدورية">📅 الفواتير الدورية</button>
 
         <!-- INSTALL PWA APP BUTTON -->
         <button class="btn btn-outline btn-sm hidden" id="btnInstallPwa" onclick="installPwaApp()" title="تثبيت تطبيق محفظة على جهازك">📲 تثبيت التطبيق</button>
@@ -3940,6 +3940,8 @@ async function renderAll() {
   if (isSuperAdmin()) {
     document.getElementById('wsSwitcher').style.display = 'none';
     document.getElementById('btnQuickAdd').style.display = 'none';
+    if (document.getElementById('btnRecurringBills')) document.getElementById('btnRecurringBills').style.display = 'none';
+    if (document.getElementById('btnExportReport')) document.getElementById('btnExportReport').style.display = 'none';
     document.getElementById('appRoleTag').textContent = 'Super Admin System';
     document.getElementById('miniBalLabel').textContent = 'نظام الإشراف';
     document.getElementById('miniBalance').textContent = 'Super Admin';
@@ -3953,6 +3955,8 @@ async function renderAll() {
   } else {
     document.getElementById('wsSwitcher').style.display = 'block';
     document.getElementById('btnQuickAdd').style.display = 'inline-flex';
+    if (document.getElementById('btnRecurringBills')) document.getElementById('btnRecurringBills').style.display = 'inline-flex';
+    if (document.getElementById('btnExportReport')) document.getElementById('btnExportReport').style.display = 'inline-flex';
     document.getElementById('appRoleTag').textContent = 'SQLite Full Stack';
     document.getElementById('miniBalLabel').textContent = 'إجمالي الرصيد';
 

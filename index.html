@@ -897,39 +897,96 @@ tbody tr:last-child td{border-bottom:none;}
         </div>
       </section>
 
-      <!-- ============ ACCOUNTS ============ -->
+      <!-- ============ ACCOUNTS, TRANSFERS & BUDGETS ============ -->
       <section class="view" id="view-accounts">
-        <div class="filters" style="display:flex;gap:10px;align-items:center;">
-          <button class="btn btn-outline" onclick="openTransferModal()">↔️ تحويل بين الحسابات</button>
-          <button class="btn btn-primary" id="btnAddAccPage" style="margin-inline-start:auto;">+ إضافة حساب</button>
+        <!-- SUB TABS BAR -->
+        <div style="display:flex;gap:8px;margin-bottom:16px;background:var(--surface-alt);padding:6px;border-radius:12px;width:fit-content;flex-wrap:wrap;">
+          <button class="btn btn-sm sub-tab-btn" id="tabBtnAccs" onclick="switchAccSubTab('accs')" style="background:var(--surface);box-shadow:var(--shadow-sm);font-weight:700;">🏦 الحسابات المالية</button>
+          <button class="btn btn-sm sub-tab-btn btn-ghost" id="tabBtnTransfers" onclick="switchAccSubTab('transfers')" style="font-weight:700;">↔️ التحويل بين الحسابات</button>
+          <button class="btn btn-sm sub-tab-btn btn-ghost" id="tabBtnBudgets" onclick="switchAccSubTab('budgets')" style="font-weight:700;">💵 الميزانيات والتخطيط</button>
         </div>
-        <div class="grid grid-3" id="accountsGrid"></div>
-        <div id="accEmpty" class="empty hidden"><div class="bubble">🏦</div><h4>لا توجد حسابات</h4></div>
-      </section>
 
-      <!-- ============ CATEGORIES ============ -->
-      <section class="view" id="view-categories">
-        <div class="filters">
-          <button class="btn btn-primary" id="btnAddCatPage" style="margin-inline-start:auto;">+ إضافة فئة</button>
+        <!-- TAB 1: ACCOUNTS GRID -->
+        <div id="accTabSecAccounts">
+          <div class="filters" style="display:flex;gap:10px;align-items:center;margin-bottom:14px;">
+            <button class="btn btn-primary" id="btnAddAccPage" style="margin-inline-start:auto;">+ إضافة حساب جديد</button>
+          </div>
+          <div class="grid grid-3" id="accountsGrid"></div>
+          <div id="accEmpty" class="empty hidden"><div class="bubble">🏦</div><h4>لا توجد حسابات</h4></div>
         </div>
-        <div class="grid grid-4" id="categoriesGrid"></div>
-      </section>
 
-      <!-- ============ BUDGETS ============ -->
-      <section class="view" id="view-budgets">
-        <div class="filters">
-          <button class="btn btn-primary" id="btnAddBudPage" style="margin-inline-start:auto;">+ إضافة ميزانية</button>
-        </div>
-        <div class="grid grid-3" id="budgetsGrid"></div>
-        <div id="budEmpty" class="empty hidden"><div class="bubble">💵</div><h4>لا توجد ميزانيات</h4></div>
-      </section>
+        <!-- TAB 2: DEDICATED FULL-PAGE TRANSFERS VIEW -->
+        <div id="accTabSecTransfers" class="hidden" style="display:none;">
+          <div class="grid grid-2" style="gap:20px;align-items:flex-start;">
+            <!-- TRANSFER FORM CARD -->
+            <div class="card">
+              <div class="card-title" style="margin-bottom:14px;">↔️ تحويل أموال بين الحسابات المالية</div>
+              <p class="muted" style="font-size:12.5px;margin-bottom:16px;">قم بنقل الأموال بسلاسة بين حساباتك المتاحة (مثال: سحب كاش من بنك مصر وحفظه بالخزينة المنزلية).</p>
 
-      <!-- ============ TAGS ============ -->
-      <section class="view" id="view-tags">
-        <div class="filters">
-          <button class="btn btn-primary" id="btnAddTagPage" style="margin-inline-start:auto;">+ إضافة وسم</button>
+              <div class="field-group" style="margin-bottom:12px;">
+                <label>من حساب (الخصم / المصدر) *</label>
+                <select class="select" id="pageTransferFromAccount" onchange="updateTransferBalancePreview()"></select>
+                <div id="pageTransferFromPreview" style="font-size:12px;font-weight:700;color:var(--primary);margin-top:4px;"></div>
+              </div>
+
+              <div class="field-group" style="margin-bottom:12px;">
+                <label>إلى حساب (الإيداع / الوجهة) *</label>
+                <select class="select" id="pageTransferToAccount" onchange="updateTransferBalancePreview()"></select>
+                <div id="pageTransferToPreview" style="font-size:12px;font-weight:700;color:var(--blue);margin-top:4px;"></div>
+              </div>
+
+              <div class="two-col" style="margin-top:12px;">
+                <div class="field-group">
+                  <label>المبلغ المراد تحويله (ج.م) *</label>
+                  <input class="input" type="number" id="pageTransferAmountInput" placeholder="1000" style="font-family:'Cairo';font-weight:700;">
+                  <div style="display:flex;gap:6px;margin-top:6px;">
+                    <button class="btn btn-ghost btn-xs" onclick="setQuickTransferAmount(100)">+100</button>
+                    <button class="btn btn-ghost btn-xs" onclick="setQuickTransferAmount(500)">+500</button>
+                    <button class="btn btn-ghost btn-xs" onclick="setQuickTransferAmount(1000)">+1000</button>
+                    <button class="btn btn-ghost btn-xs" onclick="setQuickTransferAmount(5000)">+5000</button>
+                  </div>
+                </div>
+                <div class="field-group">
+                  <label>تاريخ التحويل *</label>
+                  <input class="input" type="date" id="pageTransferDateInput">
+                </div>
+              </div>
+
+              <div class="field-group" style="margin-top:12px;">
+                <label>سبب التحويل / ملاحظات</label>
+                <input class="input" id="pageTransferNoteInput" placeholder="مثال: سحب كاش للخزينة المنزلية أو تغذية محفظة فودافون كاش">
+              </div>
+
+              <div style="margin-top:16px;">
+                <button class="btn btn-primary" style="width:100%;justify-content:center;padding:10px;" onclick="doPageTransferFunds()">إتمام التحويل المالي 🚀</button>
+              </div>
+            </div>
+
+            <!-- RECENT TRANSFERS HISTORY CARD -->
+            <div class="card">
+              <div class="card-head" style="display:flex;justify-content:space-between;align-items:center;">
+                <div class="card-title">📜 سجل عمليات التحويل بين الحسابات</div>
+                <button class="btn btn-ghost btn-sm" onclick="renderPageTransfersHistory()">🔄 تحديث</button>
+              </div>
+              <div class="table-wrap" style="margin-top:10px;">
+                <table>
+                  <thead><tr><th>التاريخ والوقت</th><th>تحويل من ⬅️ إلى</th><th>المبلغ</th><th>ملاحظات</th></tr></thead>
+                  <tbody id="pageTransfersHistoryBody"></tbody>
+                </table>
+              </div>
+              <div id="pageTransfersEmpty" class="empty hidden"><div class="bubble">↔️</div><h4>لا توجد عمليات تحويل مسجلة بعد</h4></div>
+            </div>
+          </div>
         </div>
-        <div class="grid grid-4" id="tagsGrid"></div>
+
+        <!-- TAB 3: BUDGETS GRID -->
+        <div id="accTabSecBudgets" class="hidden" style="display:none;">
+          <div class="filters" style="display:flex;gap:10px;align-items:center;margin-bottom:14px;">
+            <button class="btn btn-primary" id="btnAddBudPage" style="margin-inline-start:auto;">+ إضافة ميزانية جديدة</button>
+          </div>
+          <div class="grid grid-3" id="budgetsGrid"></div>
+          <div id="budEmpty" class="empty hidden"><div class="bubble">💵</div><h4>لا توجد ميزانيات</h4></div>
+        </div>
       </section>
 
       <!-- ============ REPORTS ============ -->
@@ -1022,132 +1079,179 @@ tbody tr:last-child td{border-bottom:none;}
         </div>
       </section>
 
-      <!-- ============ SETTINGS ============ -->
+      <!-- ============ SETTINGS & CONFIGURATION ============ -->
       <section class="view" id="view-settings">
-        <div class="grid grid-2">
-          <!-- PROFILE EDIT CARD -->
-          <div class="card">
-            <div class="card-head"><div class="card-title">👤 تعديل بيانات الملف الشخصي والحساب</div></div>
-            <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
-              <div class="avatar" id="settingsAvatarPreview" style="width:64px;height:64px;font-size:24px;">؟</div>
-              <div style="flex:1;">
-                <div class="field-group">
-                  <label>رابط الصورة الشخصية / Avatar</label>
-                  <input class="input" id="setProfileAvatar" placeholder="https://... أو اختر ملفاً من الجهاز">
-                </div>
-                <div style="margin-top:6px;">
-                  <input type="file" id="fileAvatarPicker" accept="image/*" style="display:none;">
-                  <button class="btn btn-ghost btn-sm" onclick="document.getElementById('fileAvatarPicker').click()">📷 رفع صورة من الجهاز</button>
-                </div>
-              </div>
-            </div>
-            <div class="grid grid-2" style="gap:12px;">
-              <div class="field-group">
-                <label>الاسم الكامل *</label>
-                <input class="input" id="setProfileName" placeholder="مثال: أحمد محمود">
-              </div>
-              <div class="field-group">
-                <label>البريد الإلكتروني *</label>
-                <input class="input" id="setProfileEmail" placeholder="example@domain.com">
-              </div>
-            </div>
-            <div class="grid grid-2" style="gap:12px;margin-top:12px;">
-              <div class="field-group">
-                <label>اسم المستخدم الفريد (@username)</label>
-                <input class="input" id="setProfileUsername" placeholder="مثال: ahmed">
-              </div>
-              <div class="field-group">
-                <label>رقم الهاتف / الموبايل</label>
-                <input class="input" id="setProfilePhone" placeholder="010XXXXXXXX">
-              </div>
-            </div>
-            <div class="field-group" style="margin-top:12px;">
-              <label>المسمى / الدور العائلي</label>
-              <input class="input" id="setProfileJobTitle" placeholder="مثال: رب الأسرة / الأم">
-            </div>
-            <div class="field-group" style="margin-top:12px;">
-              <label>نبذة شخصية (Bio)</label>
-              <input class="input" id="setProfileBio" placeholder="اكتب نبذة مختصرة عن دورك أو اهتماماتك المالية">
-            </div>
-            <button class="btn btn-primary" id="btnSaveProfile" style="margin-top:18px;">💾 حفظ تغييرات البروفايل والبيانات الشخصية</button>
-          </div>
+        <!-- SETTINGS SUB TABS BAR -->
+        <div style="display:flex;gap:8px;margin-bottom:16px;background:var(--surface-alt);padding:6px;border-radius:12px;width:fit-content;flex-wrap:wrap;">
+          <button class="btn btn-sm set-tab-btn" id="setTabBtnGlobal" onclick="switchSettingsSubTab('global')" style="background:var(--surface);box-shadow:var(--shadow-sm);font-weight:700;">⚙️ الإعدادات والبروفايل</button>
+          <button class="btn btn-sm set-tab-btn btn-ghost" id="setTabBtnCategories" onclick="switchSettingsSubTab('categories')" style="font-weight:700;">📂 الفئات والتصنيفات</button>
+          <button class="btn btn-sm set-tab-btn btn-ghost" id="setTabBtnTags" onclick="switchSettingsSubTab('tags')" style="font-weight:700;">🏷️ الوسوم والبطاقات</button>
+          <button class="btn btn-sm set-tab-btn btn-ghost" id="setTabBtnFavorites" onclick="switchSettingsSubTab('favorites')" style="font-weight:700;">❤️ المعاملات المفضلة</button>
+          <button class="btn btn-sm set-tab-btn btn-ghost" id="setTabBtnAudit" onclick="switchSettingsSubTab('audit_log')" style="font-weight:700;">📜 سجل الأنشطة والتدقيق</button>
+        </div>
 
-          <div class="card">
-            <div class="settings-section">
-              <h4>💱 الإعدادات العامة للمنصة</h4>
-              <div class="field-group"><label>العملة المعتمدة للمساحة</label>
-                <select class="select" id="setCurrency">
-                  <option value="EGP">جنيه مصري (ج.م)</option>
-                  <option value="SAR">ريال سعودي (﷼)</option>
-                  <option value="AED">درهم إماراتي (د.إ)</option>
-                  <option value="USD">دولار أمريكي ($)</option>
-                  <option value="EUR">يورو أوروبي (€)</option>
-                </select>
+        <!-- SUBTAB 1: GLOBAL SETTINGS & PROFILE -->
+        <div id="setTabSecGlobal">
+          <div class="grid grid-2">
+            <!-- PROFILE EDIT CARD -->
+            <div class="card">
+              <div class="card-head"><div class="card-title">👤 تعديل بيانات الملف الشخصي والحساب</div></div>
+              <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
+                <div class="avatar" id="settingsAvatarPreview" style="width:64px;height:64px;font-size:24px;">؟</div>
+                <div style="flex:1;">
+                  <div class="field-group">
+                    <label>رابط الصورة الشخصية / Avatar</label>
+                    <input class="input" id="setProfileAvatar" placeholder="https://... أو اختر ملفاً من الجهاز">
+                  </div>
+                  <div style="margin-top:6px;">
+                    <input type="file" id="fileAvatarPicker" accept="image/*" style="display:none;">
+                    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('fileAvatarPicker').click()">📷 رفع صورة من الجهاز</button>
+                  </div>
+                </div>
               </div>
+              <div class="grid grid-2" style="gap:12px;">
+                <div class="field-group">
+                  <label>الاسم الكامل *</label>
+                  <input class="input" id="setProfileName" placeholder="مثال: أحمد محمود">
+                </div>
+                <div class="field-group">
+                  <label>البريد الإلكتروني *</label>
+                  <input class="input" id="setProfileEmail" placeholder="example@domain.com">
+                </div>
+              </div>
+              <div class="grid grid-2" style="gap:12px;margin-top:12px;">
+                <div class="field-group">
+                  <label>اسم المستخدم الفريد (@username)</label>
+                  <input class="input" id="setProfileUsername" placeholder="مثال: ahmed">
+                </div>
+                <div class="field-group">
+                  <label>رقم الهاتف / الموبايل</label>
+                  <input class="input" id="setProfilePhone" placeholder="010XXXXXXXX">
+                </div>
+              </div>
+              <div class="field-group" style="margin-top:12px;">
+                <label>المسمى / الدور العائلي</label>
+                <input class="input" id="setProfileJobTitle" placeholder="مثال: رب الأسرة / الأم">
+              </div>
+              <div class="field-group" style="margin-top:12px;">
+                <label>نبذة شخصية (Bio)</label>
+                <input class="input" id="setProfileBio" placeholder="اكتب نبذة مختصرة عن دورك أو اهتماماتك المالية">
+              </div>
+              <button class="btn btn-primary" id="btnSaveProfile" style="margin-top:18px;">💾 حفظ تغييرات البروفايل والبيانات الشخصية</button>
             </div>
-            <button class="btn btn-primary" id="btnSaveSettings" style="margin-top:14px;">حفظ الإعدادات والعملة</button>
+
+            <div class="card">
+              <div class="settings-section">
+                <h4>💱 الإعدادات العامة للمنصة</h4>
+                <div class="field-group"><label>العملة المعتمدة للمساحة</label>
+                  <select class="select" id="setCurrency">
+                    <option value="EGP">جنيه مصري (ج.م)</option>
+                    <option value="SAR">ريال سعودي (﷼)</option>
+                    <option value="AED">درهم إماراتي (د.إ)</option>
+                    <option value="USD">دولار أمريكي ($)</option>
+                    <option value="EUR">يورو أوروبي (€)</option>
+                  </select>
+                </div>
+              </div>
+              <button class="btn btn-primary" id="btnSaveSettings" style="margin-top:14px;">حفظ الإعدادات والعملة</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUBTAB 2: CATEGORIES -->
+        <div id="setTabSecCategories" class="hidden" style="display:none;">
+          <div class="filters" style="display:flex;gap:10px;align-items:center;margin-bottom:14px;">
+            <button class="btn btn-primary" id="btnAddCatPage" style="margin-inline-start:auto;">+ إضافة فئة جديدة</button>
+          </div>
+          <div class="grid grid-4" id="categoriesGrid"></div>
+        </div>
+
+        <!-- SUBTAB 3: TAGS -->
+        <div id="setTabSecTags" class="hidden" style="display:none;">
+          <div class="filters" style="display:flex;gap:10px;align-items:center;margin-bottom:14px;">
+            <button class="btn btn-primary" id="btnAddTagPage" style="margin-inline-start:auto;">+ إضافة وسم جديد</button>
+          </div>
+          <div class="grid grid-4" id="tagsGrid"></div>
+        </div>
+
+        <!-- SUBTAB 4: FAVORITES -->
+        <div id="setTabSecFavorites" class="hidden" style="display:none;">
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title">❤️ المعاملات المفضلة <span class="muted">الوصول السريع للعمليات الهامة والمكررة</span></div>
+              <div id="favCountBadge" class="chip chip-income" style="font-size:12.5px;">٠ معاملات مفضلة</div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr>
+                  <th>المفضلة</th><th>الوصف</th><th>الفئة</th><th>الحساب</th><th>التاريخ</th><th>المبلغ</th><th></th>
+                </tr></thead>
+                <tbody id="favTableBody"></tbody>
+              </table>
+            </div>
+            <div id="favEmpty" class="empty hidden">
+              <div class="bubble">❤️</div>
+              <h4>لا توجد معاملات في المفضلة</h4>
+              <p>اضغط على أيقونة القلب (❤️) بجانب أي معاملة لإضافتها إلى المفضلة هنا.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUBTAB 5: AUDIT LOG -->
+        <div id="setTabSecAudit" class="hidden" style="display:none;">
+          <div class="card">
+            <div class="card-head" style="display:flex;justify-content:space-between;align-items:center;">
+              <div class="card-title">📜 سجل الأنشطة والتدقيق المفصل بالمنصة</div>
+            </div>
+            <p class="muted" style="font-size:12px;margin-bottom:14px;">سجل زمني حي لكافة العمليات والتعديلات والإضافات التي قام بها أعضاء المساحة لضمان الشفافية والأمان.</p>
+
+            <!-- AUDIT LOG FILTERS BAR -->
+            <div class="filters-bar" style="margin-bottom:16px;">
+              <div class="compact-search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                <input class="input filter-dropdown" id="auditSearch" placeholder="بحث بالأنشطة والمستخدمين..." oninput="filterAuditLogs()">
+              </div>
+              <select class="select filter-dropdown" id="auditFilterAction" onchange="filterAuditLogs()">
+                <option value="">نوع الحدث 📝 (الكل)</option>
+                <option value="income">تسجيل إيراد 💰</option>
+                <option value="expense">تسجيل مصروف 💸</option>
+                <option value="create">إضافة / إنشاء ➕</option>
+                <option value="update">تعديل / تحديث ✏️</option>
+                <option value="delete">حذف 🗑️</option>
+                <option value="login">تسجيل الدخول / أمان 🔐</option>
+              </select>
+              <select class="select filter-dropdown" id="auditFilterWorkspace" onchange="filterAuditLogs()">
+                <option value="">المساحة 🗂️ (الكل)</option>
+              </select>
+              <select class="select filter-dropdown" id="auditFilterActor" onchange="filterAuditLogs()">
+                <option value="">الفاعل / العضو 👤 (الكل)</option>
+              </select>
+              <select class="select filter-dropdown" id="auditFilterDateSelect" onchange="handleAuditDateDropdownChange(this.value)">
+                <option value="all">التاريخ 📅 (الكل)</option>
+                <option value="today">اليوم</option>
+                <option value="yesterday">الأمس</option>
+                <option value="this_week">هذا الأسبوع</option>
+                <option value="this_month">هذا الشهر</option>
+                <option value="custom">نطاق مخصص ✏️</option>
+              </select>
+              <div id="auditCustomDateRangeBox" class="hidden" style="display:none;align-items:center;gap:6px;">
+                <input class="input filter-dropdown" id="auditFilterFrom" type="date" style="width:130px;padding:0 6px;" onchange="filterAuditLogs()" title="من تاريخ">
+                <span style="font-size:11px;font-weight:700;color:var(--ink-faint);">إلى</span>
+                <input class="input filter-dropdown" id="auditFilterTo" type="date" style="width:130px;padding:0 6px;" onchange="filterAuditLogs()" title="إلى تاريخ">
+              </div>
+              <button class="btn filter-dropdown-btn" onclick="renderAuditLogView()" title="تحديث السجل والبيانات">🔄 تحديث السجل</button>
+              <button class="btn filter-dropdown-btn" id="btnResetAuditFilters" onclick="resetAuditFilters()" title="إعادة تصفير الفلاتر">🔄 تصفير</button>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>الوقت والتاريخ</th><th>المستجيب / الفاعل</th><th>الحدث / الإجراء</th><th>الهدف / البيان</th><th>بيانات إضافية</th></tr></thead>
+                <tbody id="auditLogBody"></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </section>
-
-      <!-- ============ AUDIT LOG DASHBOARD ============ -->
-      <section class="view" id="view-audit_log">
-        <div class="card">
-          <div class="card-head" style="display:flex;justify-content:space-between;align-items:center;">
-            <div class="card-title">📜 سجل الأنشطة والتدقيق المفصل بالمنصة</div>
-          </div>
-          <p class="muted" style="font-size:12px;margin-bottom:14px;">سجل زمني حي لكافة العمليات والتعديلات والإضافات التي قام بها أعضاء المساحة لضمان الشفافية والأمان.</p>
-
-          <!-- AUDIT LOG FILTERS BAR -->
-          <div class="filters-bar" style="margin-bottom:16px;">
-            <!-- SEARCH FIELD -->
-            <div class="compact-search">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-              <input class="input filter-dropdown" id="auditSearch" placeholder="بحث بالأنشطة والمستخدمين..." oninput="filterAuditLogs()">
-            </div>
-
-            <!-- ACTION TYPE DROPDOWN -->
-            <select class="select filter-dropdown" id="auditFilterAction" onchange="filterAuditLogs()">
-              <option value="">نوع الحدث 📝 (الكل)</option>
-              <option value="income">تسجيل إيراد 💰</option>
-              <option value="expense">تسجيل مصروف 💸</option>
-              <option value="create">إضافة / إنشاء ➕</option>
-              <option value="update">تعديل / تحديث ✏️</option>
-              <option value="delete">حذف 🗑️</option>
-              <option value="login">تسجيل الدخول / أمان 🔐</option>
-            </select>
-
-            <!-- WORKSPACE DROPDOWN -->
-            <select class="select filter-dropdown" id="auditFilterWorkspace" onchange="filterAuditLogs()">
-              <option value="">المساحة 🗂️ (الكل)</option>
-            </select>
-
-            <!-- USER / ACTOR DROPDOWN -->
-            <select class="select filter-dropdown" id="auditFilterActor" onchange="filterAuditLogs()">
-              <option value="">الفاعل / العضو 👤 (الكل)</option>
-            </select>
-
-            <!-- DATE DROPDOWN SELECT -->
-            <select class="select filter-dropdown" id="auditFilterDateSelect" onchange="handleAuditDateDropdownChange(this.value)">
-              <option value="all">التاريخ 📅 (الكل)</option>
-              <option value="today">اليوم</option>
-              <option value="yesterday">الأمس</option>
-              <option value="this_week">هذا الأسبوع</option>
-              <option value="this_month">هذا الشهر</option>
-              <option value="custom">نطاق مخصص ✏️</option>
-            </select>
-
-            <!-- HIDDEN CUSTOM DATE RANGE PICKER -->
-            <div id="auditCustomDateRangeBox" class="hidden" style="display:none;align-items:center;gap:6px;">
-              <input class="input filter-dropdown" id="auditFilterFrom" type="date" style="width:130px;padding:0 6px;" onchange="filterAuditLogs()" title="من تاريخ">
-              <span style="font-size:11px;font-weight:700;color:var(--ink-faint);">إلى</span>
-              <input class="input filter-dropdown" id="auditFilterTo" type="date" style="width:130px;padding:0 6px;" onchange="filterAuditLogs()" title="إلى تاريخ">
-            </div>
-
-            <!-- REFRESH & RESET BUTTONS SIDE-BY-SIDE -->
-            <button class="btn filter-dropdown-btn" onclick="renderAuditLogView()" title="تحديث السجل والبيانات">🔄 تحديث السجل</button>
-            <button class="btn filter-dropdown-btn" id="btnResetAuditFilters" onclick="resetAuditFilters()" title="إعادة تصفير الفلاتر">🔄 تصفير</button>
-          </div>
 
           <div class="table-wrap">
             <table>
@@ -1843,60 +1947,34 @@ window.switchAuthTab = switchAuthTab;
 
 async function doCodeJoin() {
   const join_code = document.getElementById('codeJoinCode')?.value.trim();
-  const name = document.getElementById('codeJoinName')?.value.trim();
-  const passwordRaw = document.getElementById('codeJoinPass')?.value;
-  const username = document.getElementById('codeJoinUsername')?.value.trim();
-  const note = document.getElementById('authNote');
-
-  const password = passwordRaw ? normalizeArabicDigits(passwordRaw) : '';
-
-  if (!join_code || !name || !password) {
-    if (note) note.textContent = 'يرجى إدخال كود الدعوة، واسمك الكامل، وكلمة السر (*)';
-    return;
+  const name = document.getElementById('codeJoinName  } else {
+    items = [
+      { id: 'dashboard', icon: '📊', label: 'لوحة التحكم' },
+      { id: 'transactions', icon: '🧾', label: 'المعاملات المالية' },
+      { id: 'team', icon: '👥', label: 'الفريق والأسرة' },
+      { id: 'accounts', icon: '🏦', label: 'الحسابات والميزانيات' },
+      { id: 'reports', icon: '📈', label: 'التقارير المالية' },
+      { id: 'settings', icon: '⚙️', label: 'الإعدادات والتكوين' },
+    ];
   }
 
-  try {
-    const res = await apiFetch('/api/auth/join-by-code', {
-      method: 'POST',
-      body: JSON.stringify({ join_code, name, password, username })
-    });
-    localStorage.setItem('mahfaza_token', res.token);
-    if (note) note.textContent = '';
-    await enterApp();
-    toast(`تم الانضمام بنجاح لمساحة ${res.workspace?.name || ''}، مرحباً بك يا ${res.user?.name || name}`, 'success');
-  } catch (err) {
-    if (note) note.textContent = err.message || 'فشل الانضمام السريع بكود الدعوة';
-  }
+  document.getElementById('navList').innerHTML = items.map(i => `
+    <button class="nav-item ${i.id === currentView ? 'active' : ''}" data-nav="${i.id}" title="${i.label}">
+      <div class="nav-bubble">${i.icon}</div><span class="nav-item-text">${i.label}</span>
+    </button>
+  `).join('');
+
+  document.querySelectorAll('[data-nav]').forEach(b => b.addEventListener('click', () => goTo(b.dataset.nav)));
 }
-window.doCodeJoin = doCodeJoin;
 
-async function quickDemoLogin(demoUserId, email) {
-  const note = document.getElementById('authNote');
-  try {
-    const res = await apiFetch('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ demoUserId, email })
-    });
-    localStorage.setItem('mahfaza_token', res.token);
-    if (note) note.textContent = '';
-    await enterApp();
-    toast(`مرحباً بك مجدداً يا ${res.user.name}`, 'success');
-  } catch (err) {
-    if (note) note.textContent = err.message || 'تعذر الدخول بالحساب التجريبي';
-  }
-}
-window.quickDemoLogin = quickDemoLogin;
-
-async function doLogin() {
-  const emailRaw = document.getElementById('loginEmail')?.value.trim();
-  const passwordRaw = document.getElementById('loginPass')?.value;
-  const note = document.getElementById('authNote');
-
-  const email = emailRaw ? emailRaw.toLowerCase() : '';
-  const password = passwordRaw ? normalizeArabicDigits(passwordRaw) : '';
-
-  if (!email || !password) {
-    if (note) note.textContent = 'يرجى إدخال البريد الإلكتروني وكلمة المرور';
+const PAGE_TITLES = {
+  dashboard: { title: 'لوحة التحكم', sub: 'نظرة عامة على وضعك المالي' },
+  transactions: { title: 'المعاملات المالية', sub: 'سجل جميع الإيرادات والمصروفات' },
+  team: { title: 'الفريق والأسرة', sub: 'إدارة الأعضاء والميزانيات المخصصة' },
+  accounts: { title: 'الحسابات والتحويلات والميزانيات', sub: 'إدارة البنوك والخزائن والتحويل المالي والتخطيط' },
+  reports: { title: 'التقارير المالية', sub: 'تحليلات ورسوم بيانية مفصلة' },
+  settings: { title: 'الإعدادات والتكوين', sub: 'ضبط الحساب، الفئات، الوسوم، المفضلة، وسجل الأنشطة' },
+};لمة المرور';
     return;
   }
 
@@ -2017,17 +2095,11 @@ function buildNav() {
   } else {
     items = [
       { id: 'dashboard', icon: '📊', label: 'لوحة التحكم' },
-      { id: 'transactions', icon: '🧾', label: 'المعاملات' },
-      { id: 'favorites', icon: '❤️', label: 'المفضلة' },
-      { id: 'accounts', icon: '🏦', label: 'الحسابات' },
-      { id: 'transfer_action', icon: '↔️', label: 'تحويل بين الحسابات' },
-      { id: 'categories', icon: '📂', label: 'الفئات' },
-      { id: 'budgets', icon: '💵', label: 'الميزانيات' },
-      { id: 'tags', icon: '🏷️', label: 'الوسوم' },
-      { id: 'reports', icon: '📈', label: 'التقارير' },
+      { id: 'transactions', icon: '🧾', label: 'المعاملات المالية' },
       { id: 'team', icon: '👥', label: 'الفريق والأسرة' },
-      { id: 'audit_log', icon: '📜', label: 'سجل الأنشطة' },
-      { id: 'settings', icon: '⚙️', label: 'الإعدادات' },
+      { id: 'accounts', icon: '🏦', label: 'الحسابات والميزانيات' },
+      { id: 'reports', icon: '📈', label: 'التقارير المالية' },
+      { id: 'settings', icon: '⚙️', label: 'الإعدادات والتكوين' },
     ];
   }
 
@@ -2037,27 +2109,16 @@ function buildNav() {
     </button>
   `).join('');
 
-  document.querySelectorAll('[data-nav]').forEach(b => b.addEventListener('click', () => {
-    if (b.dataset.nav === 'transfer_action') {
-      openTransferModal();
-    } else {
-      goTo(b.dataset.nav);
-    }
-  }));
+  document.querySelectorAll('[data-nav]').forEach(b => b.addEventListener('click', () => goTo(b.dataset.nav)));
 }
 
 const PAGE_TITLES = {
   dashboard: { title: 'لوحة التحكم', sub: 'نظرة عامة على وضعك المالي' },
   transactions: { title: 'المعاملات المالية', sub: 'سجل جميع الإيرادات والمصروفات' },
-  favorites: { title: 'المفضلة', sub: 'المعاملات المالية المميزة' },
-  accounts: { title: 'الحسابات المالية', sub: 'إدارة البنوك والخزائن والمحافظ' },
-  categories: { title: 'الفئات والتصنيفات', sub: 'تنظيم المصروفات والإيرادات' },
-  budgets: { title: 'الميزانيات والتخطيط', sub: 'مراقبة سقف الإنفاق الشهري' },
-  tags: { title: 'الوسوم والبطاقات', sub: 'تصنيف المعاملات بالأوسمة' },
-  reports: { title: 'التقارير المالية', sub: 'تحليلات ورسوم بيانية مفصلة' },
   team: { title: 'الفريق والأسرة', sub: 'إدارة الأعضاء والميزانيات المخصصة' },
-  audit_log: { title: 'سجل الأنشطة والتدقيق', sub: 'سجل زمني حي لكافة العمليات بالتفصيل' },
-  settings: { title: 'إعدادات المنصة', sub: 'تعديل البروفايل والعملة والتفضيلات' },
+  accounts: { title: 'الحسابات والتحويلات والميزانيات', sub: 'إدارة البنوك والخزائن والتحويل المالي والتخطيط' },
+  reports: { title: 'التقارير المالية', sub: 'تحليلات ورسوم بيانية مفصلة' },
+  settings: { title: 'الإعدادات والتكوين', sub: 'ضبط الحساب، الفئات، الوسوم، المفضلة، وسجل الأنشطة' },
   admin_overview: { title: 'لوحة التحكم بالنظام', sub: 'نظرة عامة وشاملة للسوبر أدمن' },
   admin_users: { title: 'إدارة المستخدمين', sub: 'صلاحيات وحالات كافة المستخدمين' },
   admin_workspaces: { title: 'المساحات والحسابات', sub: 'رقابة جميع المساحات المسجلة' },
@@ -2067,6 +2128,16 @@ const PAGE_TITLES = {
 
 async function goTo(view) {
   closeMobileSidebar();
+
+  // Redirect legacy views to subtabs
+  if (view === 'categories' || view === 'tags' || view === 'favorites' || view === 'audit_log') {
+    switchSettingsSubTab(view);
+    view = 'settings';
+  } else if (view === 'budgets' || view === 'transfers') {
+    switchAccSubTab(view === 'budgets' ? 'budgets' : 'transfers');
+    view = 'accounts';
+  }
+
   currentView = view;
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + view)?.classList.add('active');
@@ -2076,11 +2147,202 @@ async function goTo(view) {
   if (document.getElementById('pageTitle')) document.getElementById('pageTitle').textContent = pageMeta.title;
   if (document.getElementById('pageSub')) document.getElementById('pageSub').textContent = pageMeta.sub;
 
-  if (view === 'audit_log') {
+  if (view === 'settings' && document.getElementById('setTabSecAudit') && !document.getElementById('setTabSecAudit').classList.contains('hidden')) {
     await renderAuditLogView();
   }
   await renderAll();
 }
+
+function switchAccSubTab(tabKey) {
+  const tabs = ['accs', 'transfers', 'budgets'];
+  tabs.forEach(t => {
+    const sec = document.getElementById(t === 'accs' ? 'accTabSecAccounts' : (t === 'transfers' ? 'accTabSecTransfers' : 'accTabSecBudgets'));
+    const btn = document.getElementById(t === 'accs' ? 'tabBtnAccs' : (t === 'transfers' ? 'tabBtnTransfers' : 'tabBtnBudgets'));
+    if (sec) {
+      if (t === tabKey) {
+        sec.classList.remove('hidden');
+        sec.style.display = t === 'transfers' ? 'block' : '';
+      } else {
+        sec.classList.add('hidden');
+        sec.style.display = 'none';
+      }
+    }
+    if (btn) {
+      if (t === tabKey) {
+        btn.style.background = 'var(--surface)';
+        btn.style.boxShadow = 'var(--shadow-sm)';
+        btn.classList.remove('btn-ghost');
+      } else {
+        btn.style.background = 'transparent';
+        btn.style.boxShadow = 'none';
+        btn.classList.add('btn-ghost');
+      }
+    }
+  });
+
+  if (tabKey === 'transfers') {
+    initPageTransfersView();
+  }
+}
+window.switchAccSubTab = switchAccSubTab;
+
+function switchSettingsSubTab(tabKey) {
+  const tabs = ['global', 'categories', 'tags', 'favorites', 'audit_log'];
+  tabs.forEach(t => {
+    const secId = t === 'global' ? 'setTabSecGlobal' : (t === 'categories' ? 'setTabSecCategories' : (t === 'tags' ? 'setTabSecTags' : (t === 'favorites' ? 'setTabSecFavorites' : 'setTabSecAudit')));
+    const btnId = t === 'global' ? 'setTabBtnGlobal' : (t === 'categories' ? 'setTabBtnCategories' : (t === 'tags' ? 'setTabBtnTags' : (t === 'favorites' ? 'setTabBtnFavorites' : 'setTabBtnAudit')));
+
+    const sec = document.getElementById(secId);
+    const btn = document.getElementById(btnId);
+
+    if (sec) {
+      if (t === tabKey) {
+        sec.classList.remove('hidden');
+        sec.style.display = 'block';
+      } else {
+        sec.classList.add('hidden');
+        sec.style.display = 'none';
+      }
+    }
+    if (btn) {
+      if (t === tabKey) {
+        btn.style.background = 'var(--surface)';
+        btn.style.boxShadow = 'var(--shadow-sm)';
+        btn.classList.remove('btn-ghost');
+      } else {
+        btn.style.background = 'transparent';
+        btn.style.boxShadow = 'none';
+        btn.classList.add('btn-ghost');
+      }
+    }
+  });
+
+  if (tabKey === 'audit_log') {
+    renderAuditLogView();
+  }
+}
+window.switchSettingsSubTab = switchSettingsSubTab;
+
+function initPageTransfersView() {
+  const accounts = DB.getAll('accounts');
+  const fromSel = document.getElementById('pageTransferFromAccount');
+  const toSel = document.getElementById('pageTransferToAccount');
+
+  if (fromSel) {
+    fillSelect(fromSel, accounts, {
+      labelFn: a => `${a.name} (الرصيد: ${fmtMoney(a.current_balance !== undefined ? a.current_balance : a.initial_balance || 0)})`
+    });
+  }
+  if (toSel) {
+    fillSelect(toSel, accounts, {
+      labelFn: a => `${a.name} (الرصيد: ${fmtMoney(a.current_balance !== undefined ? a.current_balance : a.initial_balance || 0)})`
+    });
+  }
+
+  if (accounts.length >= 2) {
+    if (fromSel) fromSel.value = accounts[0].id;
+    if (toSel) toSel.value = accounts[1].id;
+  }
+
+  if (document.getElementById('pageTransferDateInput')) {
+    document.getElementById('pageTransferDateInput').value = new Date().toISOString().slice(0, 10);
+  }
+
+  updateTransferBalancePreview();
+  renderPageTransfersHistory();
+}
+window.initPageTransfersView = initPageTransfersView;
+
+function updateTransferBalancePreview() {
+  const fromId = document.getElementById('pageTransferFromAccount')?.value;
+  const toId = document.getElementById('pageTransferToAccount')?.value;
+
+  const fromAcc = DB.getById('accounts', fromId);
+  const toAcc = DB.getById('accounts', toId);
+
+  const fromBox = document.getElementById('pageTransferFromPreview');
+  const toBox = document.getElementById('pageTransferToPreview');
+
+  if (fromBox) fromBox.textContent = fromAcc ? `الرصيد الحالي المتوفر: ${fmtMoney(fromAcc.current_balance !== undefined ? fromAcc.current_balance : fromAcc.initial_balance || 0)}` : '';
+  if (toBox) toBox.textContent = toAcc ? `الرصيد الحالي المتوفر: ${fmtMoney(toAcc.current_balance !== undefined ? toAcc.current_balance : toAcc.initial_balance || 0)}` : '';
+}
+window.updateTransferBalancePreview = updateTransferBalancePreview;
+
+function setQuickTransferAmount(val) {
+  const inp = document.getElementById('pageTransferAmountInput');
+  if (inp) {
+    const cur = parseFloat(inp.value) || 0;
+    inp.value = cur + val;
+  }
+}
+window.setQuickTransferAmount = setQuickTransferAmount;
+
+async function doPageTransferFunds() {
+  const ws = currentWorkspace();
+  if (!ws) return toast('يرجى تحديد مساحة أولاً', 'error');
+
+  const from_account_id = document.getElementById('pageTransferFromAccount')?.value;
+  const to_account_id = document.getElementById('pageTransferToAccount')?.value;
+  const amount = parseFloat(document.getElementById('pageTransferAmountInput')?.value);
+  const date = document.getElementById('pageTransferDateInput')?.value;
+  const note = document.getElementById('pageTransferNoteInput')?.value.trim();
+
+  if (!from_account_id || !to_account_id || isNaN(amount) || amount <= 0) {
+    return toast('يرجى تحديد حساب المصدر وحساب الوجهة ومبلغ تحويل أكبر من صفر', 'error');
+  }
+
+  if (from_account_id === to_account_id) {
+    return toast('لا يمكن التحويل لنفس الحساب، يرجى اختيار حساب وجهة مختلف', 'error');
+  }
+
+  try {
+    const res = await apiFetch('/api/accounts/transfer', {
+      method: 'POST',
+      body: JSON.stringify({
+        workspace_id: ws.id,
+        from_account_id,
+        to_account_id,
+        amount,
+        date,
+        note
+      })
+    });
+
+    toast(res.message || 'تم إتمام التحويل المالي بنجاح! ↔️', 'success');
+    if (document.getElementById('pageTransferAmountInput')) document.getElementById('pageTransferAmountInput').value = '';
+    if (document.getElementById('pageTransferNoteInput')) document.getElementById('pageTransferNoteInput').value = '';
+
+    await DB.loadWorkspaceData();
+    await renderAll();
+    initPageTransfersView();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+window.doPageTransferFunds = doPageTransferFunds;
+
+function renderPageTransfersHistory() {
+  const tbody = document.getElementById('pageTransfersHistoryBody');
+  const empty = document.getElementById('pageTransfersEmpty');
+  if (!tbody) return;
+
+  const allTxs = DB.getAll('transactions') || [];
+  const transferTxs = allTxs.filter(t => t.note && t.note.includes('تحويل إلى:'));
+
+  if (empty) empty.classList.toggle('hidden', transferTxs.length > 0);
+
+  tbody.innerHTML = transferTxs.map(t => {
+    return `
+      <tr>
+        <td class="muted" style="font-size:12px;">${fmtDate(t.date || t.created_at)}</td>
+        <td><b>${t.note}</b></td>
+        <td class="amount-out" style="font-weight:800;font-family:'Cairo';">${fmtMoney(t.amount)}</td>
+        <td class="muted" style="font-size:12px;">${t.creator_name || '—'}</td>
+      </tr>
+    `;
+  }).join('');
+}
+window.renderPageTransfersHistory = renderPageTransfersHistory;
 
 async function renderAdminOverview() {
   const overview = await apiFetch('/api/admin/overview');

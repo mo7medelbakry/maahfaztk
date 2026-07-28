@@ -222,7 +222,7 @@ function initSchema() {
     db.prepare('UPDATE users SET username = "khaled" WHERE id = "u_khaled" AND (username IS NULL OR username = "")').run();
     db.prepare('UPDATE users SET username = "amal" WHERE id = "u_amal" AND (username IS NULL OR username = "")').run();
     db.prepare('UPDATE workspaces SET join_code = "FAM-AHMED" WHERE id = "ws_ahmed_family"').run();
-  } catch (e) {}
+  } catch (e) { }
 
   seedRichData();
 }

@@ -676,6 +676,28 @@ const server = http.createServer(async (req, res) => {
       return sendJSON(res, { success: true, id });
     }
 
+    const updateBillMatch = pathname.match(/^\/api\/recurring-bills\/([^\/]+)$/);
+    if (updateBillMatch && method === 'PUT') {
+      const billId = updateBillMatch[1];
+      const oldBill = db.prepare('SELECT * FROM recurring_bills WHERE id = ?').get(billId);
+      if (!oldBill) return sendJSON(res, { error: 'الفاتورة غير موجودة' }, 404);
+
+      const wsAccess = verifyWorkspaceAccess(currentUser, oldBill.workspace_id, true);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
+
+      const { title, amount, due_day, category_id, account_id } = body;
+      db.prepare('UPDATE recurring_bills SET title = ?, amount = ?, due_day = ?, category_id = ?, account_id = ? WHERE id = ?').run(
+        title ? title.trim() : oldBill.title,
+        amount !== undefined ? Number(amount) : oldBill.amount,
+        due_day !== undefined ? Number(due_day) : oldBill.due_day,
+        category_id !== undefined ? (category_id || null) : oldBill.category_id,
+        account_id !== undefined ? (account_id || null) : oldBill.account_id,
+        billId
+      );
+      logAudit(currentUser.id, 'update_recurring_bill', title ? title.trim() : oldBill.title);
+      return sendJSON(res, { success: true });
+    }
+
     const payBillMatch = pathname.match(/^\/api\/recurring-bills\/([^\/]+)\/pay$/);
     if (payBillMatch && method === 'POST') {
       const billId = payBillMatch[1];

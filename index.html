@@ -77,90 +77,114 @@ button,input,select,textarea{font-family:inherit;}
 .hidden{display:none !important;}
 
 /* ================= LAYOUT & RESPONSIVE SIDEBAR ================= */
-.app{display:flex;min-height:100vh;}
-
-.sidebar{
-  width:240px;flex:none;background:var(--surface);
-  border-inline-start:1px solid var(--line);
-  padding:20px 14px;display:flex;flex-direction:column;gap:16px;
-  position:sticky;top:0;height:100vh;overflow-y:auto;
-  z-index:20;box-shadow:var(--shadow-sm);
-  transition:width .22s var(--ease), padding .22s var(--ease), background .25s var(--ease);
+.app {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
+  overflow-x: hidden;
 }
 
-/* COLLAPSED STATE (Compact 72px Strip) */
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.sidebar {
+  width: 240px;
+  flex: none;
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  padding: 20px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  z-index: 20;
+  box-shadow: var(--shadow-sm);
+  transition: width .25s var(--ease), padding .25s var(--ease), background .25s var(--ease);
+}
+
+/* COLLAPSED STATE (Desktop Compact 72px Strip) */
 .sidebar.collapsed {
-  width:72px;
-  padding:20px 8px;
+  width: 72px;
+  padding: 20px 8px;
 }
 .sidebar.collapsed .brand-text,
 .sidebar.collapsed .ws-trigger .txt,
 .sidebar.collapsed .ws-trigger svg,
 .sidebar.collapsed .nav-item-text,
 .sidebar.collapsed .mini-account .t {
-  display:none !important;
+  display: none !important;
 }
-.sidebar.collapsed .brand {
-  justify-content:center;
-  padding:4px 0;
-}
-.sidebar.collapsed .ws-trigger {
-  justify-content:center;
-  padding:8px 0;
-}
-.sidebar.collapsed .nav-item {
-  justify-content:center;
-  padding:10px 0;
-}
+.sidebar.collapsed .brand,
+.sidebar.collapsed .ws-trigger,
+.sidebar.collapsed .nav-item,
 .sidebar.collapsed .mini-account {
-  justify-content:center;
-  padding:8px 0;
+  justify-content: center !important;
 }
 
-/* RESPONSIVE MEDIA QUERIES FOR SIDEBAR */
+/* RESPONSIVE MEDIA QUERIES (< 1024px) - DRAWER MODE */
 @media (max-width: 1024px) {
   .sidebar {
-    width:72px;
-    padding:20px 8px;
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    left: auto !important;
+    height: 100vh !important;
+    width: 270px !important;
+    padding: 20px 16px !important;
+    transform: translateX(100%) !important;
+    visibility: hidden;
+    opacity: 0;
+    z-index: 1000 !important;
+    box-shadow: -8px 0 32px rgba(0,0,0,0.3) !important;
+    transition: transform .3s cubic-bezier(0.4, 0, 0.2, 1), opacity .25s ease, visibility .25s ease !important;
   }
+
   .sidebar .brand-text,
   .sidebar .ws-trigger .txt,
   .sidebar .ws-trigger svg,
   .sidebar .nav-item-text,
   .sidebar .mini-account .t {
-    display:none !important;
+    display: block !important;
   }
+
   .sidebar .brand,
   .sidebar .ws-trigger,
   .sidebar .nav-item,
   .sidebar .mini-account {
-    justify-content:center;
+    justify-content: flex-start !important;
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0) !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
 }
 
-@media (max-width: 768px) {
-  .sidebar {
-    position:fixed;
-    inset-inline-start:0;
-    top:0;
-    bottom:0;
-    height:100vh;
-    width:240px !important;
-    padding:20px 14px !important;
-    transform:translateX(100%);
-    z-index:1000;
-    box-shadow:var(--shadow-lg);
-  }
-  .sidebar .brand-text,
-  .sidebar .ws-trigger .txt,
-  .sidebar .ws-trigger svg,
-  .sidebar .nav-item-text,
-  .sidebar .mini-account .t {
-    display:block !important;
-  }
-  .sidebar.mobile-open {
-    transform:translateX(0);
-  }
+/* BACKDROP OVERLAY FOR MOBILE SIDEBAR */
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 25, 20, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 995;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .25s ease, visibility .25s ease;
+}
+.sidebar-backdrop.active {
+  opacity: 1;
+  visibility: visible;
 }
 
 .brand{display:flex;align-items:center;gap:12px;padding:4px 6px;}
@@ -576,6 +600,9 @@ tbody tr:last-child td{border-bottom:none;}
 </div>
 
 <div class="app" id="app" style="display:none;">
+
+  <!-- MOBILE BACKDROP OVERLAY -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
 
   <!-- ============ FLEXIBLE & RESPONSIVE SIDEBAR ============ -->
   <aside class="sidebar" id="sidebar">
@@ -1819,16 +1846,39 @@ async function doSignup() {
 }
 window.doSignup = doSignup;
 
-// SIDEBAR TOGGLE & COLLAPSE FLEXIBILITY
-document.getElementById('btnToggleSidebar').addEventListener('click', () => {
+// SIDEBAR TOGGLE & RESPONSIVE DRAWER SYSTEM
+function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
-  if (window.innerWidth <= 768) {
-    sidebar.classList.toggle('mobile-open');
+  const backdrop = document.getElementById('sidebarBackdrop');
+  const isMobileOrTablet = window.innerWidth <= 1024;
+
+  if (isMobileOrTablet) {
+    const isOpen = sidebar.classList.contains('mobile-open');
+    if (isOpen) {
+      closeMobileSidebar();
+    } else {
+      sidebar.classList.add('mobile-open');
+      if (backdrop) backdrop.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
   } else {
     sidebar.classList.toggle('collapsed');
-    localStorage.setItem('mahfaza_sidebar_collapsed', sidebar.classList.contains('collapsed') ? '1' : '0');
+    const isCollapsed = sidebar.classList.contains('collapsed');
+    localStorage.setItem('mahfaza_sidebar_collapsed', isCollapsed ? '1' : '0');
   }
-});
+}
+window.toggleSidebar = toggleSidebar;
+
+function closeMobileSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebarBackdrop');
+  if (sidebar) sidebar.classList.remove('mobile-open');
+  if (backdrop) backdrop.classList.remove('active');
+  document.body.style.overflow = '';
+}
+window.closeMobileSidebar = closeMobileSidebar;
+
+document.getElementById('btnToggleSidebar').addEventListener('click', toggleSidebar);
 
 // DARK MODE SYSTEM
 function setTheme(theme) {
@@ -1892,6 +1942,7 @@ function buildNav() {
 }
 
 async function goTo(view) {
+  closeMobileSidebar();
   currentView = view;
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + view)?.classList.add('active');

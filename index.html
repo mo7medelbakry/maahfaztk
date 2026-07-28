@@ -947,7 +947,7 @@ tbody tr:last-child td {
       <!-- ============ ACCOUNTS, TRANSFERS & BUDGETS ============ -->
       <section class="view" id="view-accounts">
         <!-- SUB TABS BAR -->
-        <div style="display:flex;gap:8px;margin-bottom:16px;background:var(--surface-alt);padding:6px;border-radius:12px;width:fit-content;flex-wrap:wrap;">
+        <div style="display:none;gap:8px;margin-bottom:16px;background:var(--surface-alt);padding:6px;border-radius:12px;width:fit-content;flex-wrap:wrap;">
           <button class="btn btn-sm sub-tab-btn" id="tabBtnAccs" onclick="switchAccSubTab('accs')" style="background:var(--surface);box-shadow:var(--shadow-sm);font-weight:700;">🏦 الحسابات المالية</button>
           <button class="btn btn-sm sub-tab-btn btn-ghost" id="tabBtnTransfers" onclick="switchAccSubTab('transfers')" style="font-weight:700;">↔️ التحويل بين الحسابات</button>
           <button class="btn btn-sm sub-tab-btn btn-ghost" id="tabBtnBudgets" onclick="switchAccSubTab('budgets')" style="font-weight:700;">💵 الميزانيات والتخطيط</button>
@@ -2161,17 +2161,69 @@ function buildNav() {
       { id: 'dashboard', icon: '📊', label: 'لوحة التحكم' },
       { id: 'transactions', icon: '🧾', label: 'المعاملات المالية' },
       { id: 'team', icon: '👥', label: 'الفريق والأسرة' },
-      { id: 'accounts', icon: '🏦', label: 'الحسابات والميزانيات' },
+      { id: 'accounts_group', icon: '🏦', label: 'الحسابات والميزانيات', children: [
+        { id: 'accounts', icon: '🏦', label: 'الحسابات المالية' },
+        { id: 'transfers', icon: '↔️', label: 'التحويل بين الحسابات' },
+        { id: 'budgets', icon: '💵', label: 'الميزانيات والتخطيط' },
+      ] },
       { id: 'reports', icon: '📈', label: 'التقارير المالية' },
-      { id: 'settings', icon: '⚙️', label: 'الإعدادات والتكوين' },
+      { id: 'settings_group', icon: '⚙️', label: 'الإعدادات', children: [
+        { id: 'settings', icon: '⚙️', label: 'إعدادات المنصة' },
+        { id: 'categories', icon: '📂', label: 'الفئات' },
+        { id: 'tags', icon: '🏷️', label: 'الوسوم' },
+        { id: 'favorites', icon: '❤️', label: 'المفضلة' },
+        { id: 'audit_log', icon: '📜', label: 'سجل الأنشطة' },
+      ] },
     ];
   }
 
-  document.getElementById('navList').innerHTML = items.map(i => `
-    <button class="nav-item ${i.id === currentView ? 'active' : ''}" data-nav="${i.id}" title="${i.label}">
-      <div class="nav-bubble">${i.icon}</div><span class="nav-item-text">${i.label}</span>
-    </button>
-  `).join('');
+  let html = '';
+  items.forEach(i => {
+    if (i.children) {
+      const isActiveGroup = i.children.some(c => c.id === currentView) || (i.id.replace('_group', '') === currentView);
+      html += `
+        <div class="nav-group ${isActiveGroup ? 'open' : ''}">
+          <button class="nav-item ${isActiveGroup && !i.children.some(c=>c.id===currentView) ? 'active' : ''}" onclick="this.parentElement.classList.toggle('open')">
+            <div class="nav-bubble">${i.icon}</div>
+            <span class="nav-item-text" style="flex:1;text-align:right;">${i.label}</span>
+            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transition:transform 0.2s;${isActiveGroup?'transform:rotate(180deg)':''}"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="nav-children" style="display:${isActiveGroup?'block':'none'}; padding-right:10px;">
+            ${i.children.map(c => `
+              <button class="nav-item child-item ${c.id === currentView ? 'active' : ''}" data-nav="${c.id}" title="${c.label}" style="font-size:13px;padding:6px 10px;min-height:36px;margin-bottom:4px;">
+                <div class="nav-bubble" style="transform: scale(0.8);">${c.icon}</div><span class="nav-item-text">${c.label}</span>
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    } else {
+      html += `
+        <button class="nav-item ${i.id === currentView ? 'active' : ''}" data-nav="${i.id}" title="${i.label}">
+          <div class="nav-bubble">${i.icon}</div><span class="nav-item-text">${i.label}</span>
+        </button>
+      `;
+    }
+  });
+
+  document.getElementById('navList').innerHTML = html;
+
+  document.querySelectorAll('.nav-group > button').forEach(btn => {
+    btn.onclick = function(e) {
+      // Prevent child elements like SVGs from swallowing the click differently
+      const group = this.parentElement;
+      const isOpen = group.classList.contains('open');
+      if (isOpen) {
+        group.classList.remove('open');
+        group.querySelector('.nav-children').style.display = 'none';
+        group.querySelector('.chevron').style.transform = '';
+      } else {
+        group.classList.add('open');
+        group.querySelector('.nav-children').style.display = 'block';
+        group.querySelector('.chevron').style.transform = 'rotate(180deg)';
+      }
+    };
+  });
 
   document.querySelectorAll('[data-nav]').forEach(b => b.addEventListener('click', () => goTo(b.dataset.nav)));
 }
@@ -2180,9 +2232,15 @@ const PAGE_TITLES = {
   dashboard: { title: 'لوحة التحكم', sub: 'نظرة عامة على وضعك المالي' },
   transactions: { title: 'المعاملات المالية', sub: 'سجل جميع الإيرادات والمصروفات' },
   team: { title: 'الفريق والأسرة', sub: 'إدارة الأعضاء والميزانيات المخصصة' },
-  accounts: { title: 'الحسابات والتحويلات والميزانيات', sub: 'إدارة البنوك والخزائن والتحويل المالي والتخطيط' },
+  accounts: { title: 'الحسابات المالية', sub: 'إدارة البنوك والخزائن' },
+  transfers: { title: 'التحويل بين الحسابات', sub: 'نقل الأموال بين حساباتك' },
+  budgets: { title: 'الميزانيات والتخطيط', sub: 'إدارة الميزانيات وتتبع الإنفاق' },
   reports: { title: 'التقارير المالية', sub: 'تحليلات ورسوم بيانية مفصلة' },
-  settings: { title: 'الإعدادات والتكوين', sub: 'ضبط الحساب، الفئات، الوسوم، المفضلة، وسجل الأنشطة' },
+  settings: { title: 'إعدادات المنصة', sub: 'الإعدادات العامة وتخصيص النظام' },
+  categories: { title: 'إدارة الفئات', sub: 'تصنيفات الإيرادات والمصروفات' },
+  tags: { title: 'إدارة الوسوم', sub: 'تتبع الحركات بمرونة أكبر' },
+  favorites: { title: 'المعاملات المفضلة', sub: 'تسجيل العمليات المتكررة بسرعة' },
+  audit_log: { title: 'سجل الأنشطة', sub: 'متابعة كافة الإجراءات والتدقيق' },
   admin_overview: { title: 'لوحة التحكم بالنظام', sub: 'نظرة عامة وشاملة للسوبر أدمن' },
   admin_users: { title: 'إدارة المستخدمين', sub: 'صلاحيات وحالات كافة المستخدمين' },
   admin_workspaces: { title: 'المساحات والحسابات', sub: 'رقابة جميع المساحات المسجلة' },
@@ -2192,26 +2250,32 @@ const PAGE_TITLES = {
 
 async function goTo(view) {
   closeMobileSidebar();
+  currentView = view;
 
-  // Redirect legacy views to subtabs
+  let activeDomView = view;
+  
   if (view === 'categories' || view === 'tags' || view === 'favorites' || view === 'audit_log') {
     switchSettingsSubTab(view);
-    view = 'settings';
-  } else if (view === 'budgets' || view === 'transfers') {
-    switchAccSubTab(view === 'budgets' ? 'budgets' : 'transfers');
-    view = 'accounts';
+    activeDomView = 'settings';
+  } else if (view === 'settings') {
+    switchSettingsSubTab('global');
+    activeDomView = 'settings';
+  } else if (view === 'budgets' || view === 'transfers' || view === 'accounts') {
+    switchAccSubTab(view === 'budgets' ? 'budgets' : (view === 'transfers' ? 'transfers' : 'accs'));
+    activeDomView = 'accounts';
   }
 
-  currentView = view;
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.getElementById('view-' + view)?.classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.nav === view));
+  document.getElementById('view-' + activeDomView)?.classList.add('active');
+  
+  // Rebuild nav to show active states
+  buildNav();
 
   const pageMeta = PAGE_TITLES[view] || { title: 'لوحة التحكم', sub: 'محفظة' };
   if (document.getElementById('pageTitle')) document.getElementById('pageTitle').textContent = pageMeta.title;
   if (document.getElementById('pageSub')) document.getElementById('pageSub').textContent = pageMeta.sub;
 
-  if (view === 'settings' && document.getElementById('setTabSecAudit') && !document.getElementById('setTabSecAudit').classList.contains('hidden')) {
+  if (activeDomView === 'settings' && document.getElementById('setTabSecAudit') && !document.getElementById('setTabSecAudit').classList.contains('hidden')) {
     await renderAuditLogView();
   }
   await renderAll();

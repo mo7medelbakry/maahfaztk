@@ -669,6 +669,7 @@ tbody tr:last-child td{border-bottom:none;}
           </button>
           <div class="quick-add-menu" id="quickAddMenu">
             <button onclick="openTxModal()"><span style="font-size:16px;">🧾</span> إضافة معاملة مالية</button>
+            <button onclick="openTransferModal()"><span style="font-size:16px;">↔️</span> تحويل بين الحسابات</button>
             <button onclick="openAccModal()"><span style="font-size:16px;">🏦</span> إضافة حساب مالى</button>
             <button onclick="openCatModal()"><span style="font-size:16px;">📂</span> إضافة فئة جديدة</button>
             <button onclick="openBudModal()"><span style="font-size:16px;">💵</span> إضافة ميزانية</button>
@@ -897,7 +898,8 @@ tbody tr:last-child td{border-bottom:none;}
 
       <!-- ============ ACCOUNTS ============ -->
       <section class="view" id="view-accounts">
-        <div class="filters">
+        <div class="filters" style="display:flex;gap:10px;align-items:center;">
+          <button class="btn btn-outline" onclick="openTransferModal()">↔️ تحويل بين الحسابات</button>
           <button class="btn btn-primary" id="btnAddAccPage" style="margin-inline-start:auto;">+ إضافة حساب</button>
         </div>
         <div class="grid grid-3" id="accountsGrid"></div>
@@ -1544,6 +1546,45 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="modal-foot">
       <button class="btn btn-ghost" data-close="modalRequestFund">إلغاء</button>
       <button class="btn btn-primary" id="btnSubmitFundRequest">إرسال الطلب لمالك الأسرة 🚀</button>
+    </div>
+  </div>
+<!-- Modal: Transfer Funds Between Accounts -->
+<div class="overlay" id="modalTransferFunds">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-head"><h3>↔️ تحويل أموال بين الحسابات المالية</h3><button class="icon-btn" data-close="modalTransferFunds">✕</button></div>
+    <div class="modal-body">
+      <p class="muted" style="font-size:12px;margin-bottom:10px;">نقل الأموال بين حساباتك المتاحة (مثال: سحب كاش من بنك مصر وحفظه بالخزينة المنزلية).</p>
+
+      <div class="two-col">
+        <div class="field-group">
+          <label>من حساب (الخصم / المصدر) *</label>
+          <select class="select" id="transferFromAccount"></select>
+        </div>
+        <div class="field-group">
+          <label>إلى حساب (الإيداع / الوجهة) *</label>
+          <select class="select" id="transferToAccount"></select>
+        </div>
+      </div>
+
+      <div class="two-col" style="margin-top:12px;">
+        <div class="field-group">
+          <label>المبلغ المراد تحويله (ج.م) *</label>
+          <input class="input" type="number" id="transferAmountInput" placeholder="1000" style="font-family:'Cairo';font-weight:700;">
+        </div>
+        <div class="field-group">
+          <label>تاريخ التحويل *</label>
+          <input class="input" type="date" id="transferDateInput">
+        </div>
+      </div>
+
+      <div class="field-group" style="margin-top:12px;">
+        <label>سبب التحويل / ملاحظات</label>
+        <input class="input" id="transferNoteInput" placeholder="مثال: سحب كاش للخزينة المنزلية أو تغذية محفظة فودافون كاش">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close="modalTransferFunds">إلغاء</button>
+      <button class="btn btn-primary" id="btnSubmitTransfer" onclick="doTransferFunds()">إتمام التحويل المالي 🚀</button>
     </div>
   </div>
 </div>
@@ -2850,6 +2891,80 @@ function renderAccounts() {
     </div>
   `).join('');
 }
+
+function openTransferModal() {
+  const ws = currentWorkspace();
+  if (!ws) return;
+
+  const accounts = DB.getAll('accounts');
+  if (accounts.length < 2) {
+    return toast('يلزم وجود حسابين ماليين على الأقل لتتمكن من إجراء تحويل بينهما! قم بإنشاء حساب جديد أولاً.', 'error');
+  }
+
+  const fromSel = document.getElementById('transferFromAccount');
+  const toSel = document.getElementById('transferToAccount');
+
+  fillSelect(fromSel, accounts, {
+    labelFn: a => `${a.name} (الرصيد: ${fmtMoney(a.current_balance || a.initial_balance || 0)})`
+  });
+
+  fillSelect(toSel, accounts, {
+    labelFn: a => `${a.name} (الرصيد: ${fmtMoney(a.current_balance || a.initial_balance || 0)})`
+  });
+
+  if (accounts.length >= 2) {
+    fromSel.value = accounts[0].id;
+    toSel.value = accounts[1].id;
+  }
+
+  document.getElementById('transferAmountInput').value = '';
+  document.getElementById('transferDateInput').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('transferNoteInput').value = '';
+
+  openModal('modalTransferFunds');
+}
+window.openTransferModal = openTransferModal;
+
+async function doTransferFunds() {
+  const ws = currentWorkspace();
+  if (!ws) return;
+
+  const from_account_id = document.getElementById('transferFromAccount').value;
+  const to_account_id = document.getElementById('transferToAccount').value;
+  const amount = parseFloat(document.getElementById('transferAmountInput').value);
+  const date = document.getElementById('transferDateInput').value;
+  const note = document.getElementById('transferNoteInput').value.trim();
+
+  if (!from_account_id || !to_account_id || isNaN(amount) || amount <= 0) {
+    return toast('يرجى تحديد حساب المصدر وحساب الوجهة ومبلغ تحويل أكبر من صفر', 'error');
+  }
+
+  if (from_account_id === to_account_id) {
+    return toast('لا يمكن التحويل لنفس الحساب، يرجى اختيار حساب وجهة مختلف', 'error');
+  }
+
+  try {
+    const res = await apiFetch('/api/accounts/transfer', {
+      method: 'POST',
+      body: JSON.stringify({
+        workspace_id: ws.id,
+        from_account_id,
+        to_account_id,
+        amount,
+        date,
+        note
+      })
+    });
+
+    closeModal('modalTransferFunds');
+    toast(res.message || 'تم التحويل المالي بين الحسابات بنجاح! ↔️', 'success');
+    await DB.loadWorkspaceData();
+    await renderAll();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+window.doTransferFunds = doTransferFunds;
 
 function renderCategories() {
   const cats = DB.getAll('categories');

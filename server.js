@@ -836,6 +836,65 @@ const server = http.createServer(async (req, res) => {
       );
       return sendJSON(res, db.prepare('SELECT * FROM accounts WHERE id = ?').get(id));
     }
+    if (pathname === '/api/accounts/transfer' && method === 'POST') {
+      const { workspace_id, from_account_id, to_account_id, amount, date, note } = body;
+      const wsAccess = verifyWorkspaceAccess(currentUser, workspace_id, true);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
+
+      if (!from_account_id || !to_account_id || !amount || Number(amount) <= 0) {
+        return sendJSON(res, { error: 'يرجى تحديد حساب المصدر وحساب الوجهة ومبلغ تحويل أكبر من صفر' }, 400);
+      }
+      if (from_account_id === to_account_id) {
+        return sendJSON(res, { error: 'لا يمكن التحويل لنفس الحساب، اختر حساب وجهة مختلف' }, 400);
+      }
+
+      const fromAcc = db.prepare('SELECT * FROM accounts WHERE id = ? AND workspace_id = ?').get(from_account_id, workspace_id);
+      const toAcc = db.prepare('SELECT * FROM accounts WHERE id = ? AND workspace_id = ?').get(to_account_id, workspace_id);
+
+      if (!fromAcc || !toAcc) {
+        return sendJSON(res, { error: 'أحد الحسابات المحددة غير موجود في هذه المساحة' }, 404);
+      }
+
+      let transferCategory = db.prepare("SELECT id FROM categories WHERE workspace_id = ? AND (LOWER(name) LIKE '%تحويل%' OR LOWER(name) LIKE '%تحويلات%') LIMIT 1").get(workspace_id);
+      if (!transferCategory) {
+        transferCategory = db.prepare("SELECT id FROM categories WHERE workspace_id = ? LIMIT 1").get(workspace_id);
+      }
+      const catId = transferCategory ? transferCategory.id : 'cat_transfer';
+
+      const transferAmount = parseFloat(amount);
+      const transferDate = date || new Date().toISOString().slice(0, 10);
+      const now = new Date().toISOString();
+      const customNote = note ? note.trim() : '';
+
+      const txFromId = 'tx_' + Date.now() + '_from';
+      const txToId = 'tx_' + (Date.now() + 1) + '_to';
+
+      const noteFrom = `تحويل إلى: (${toAcc.name})` + (customNote ? ` - ${customNote}` : '');
+      const noteTo = `تحويل من: (${fromAcc.name})` + (customNote ? ` - ${customNote}` : '');
+
+      db.prepare(`
+        INSERT INTO transactions (id, workspace_id, account_id, category_id, type, amount, date, note, is_deleted, is_favorite, created_by, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)
+      `).run(txFromId, workspace_id, from_account_id, catId, 'expense', transferAmount, transferDate, noteFrom, currentUser.id, now);
+
+      db.prepare(`
+        INSERT INTO transactions (id, workspace_id, account_id, category_id, type, amount, date, note, is_deleted, is_favorite, created_by, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)
+      `).run(txToId, workspace_id, to_account_id, catId, 'income', transferAmount, transferDate, noteTo, currentUser.id, now);
+
+      recalcAccountBalance(from_account_id);
+      recalcAccountBalance(to_account_id);
+
+      logAudit(currentUser.id, 'تحويل بين الحسابات ↔️', `${fromAcc.name} ⬅️ ${toAcc.name} (${transferAmount} ج.م)`, customNote, workspace_id);
+
+      return sendJSON(res, {
+        success: true,
+        message: `تم تحويل ${transferAmount} ج.م من (${fromAcc.name}) إلى (${toAcc.name}) بنجاح!`,
+        from_account_id,
+        to_account_id
+      });
+    }
+
     const accMatch = pathname.match(/^\/api\/accounts\/([^\/]+)$/);
     if (accMatch && method === 'PUT') {
       const oldAcc = db.prepare('SELECT * FROM accounts WHERE id = ?').get(accMatch[1]);

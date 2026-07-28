@@ -1947,34 +1947,60 @@ window.switchAuthTab = switchAuthTab;
 
 async function doCodeJoin() {
   const join_code = document.getElementById('codeJoinCode')?.value.trim();
-  const name = document.getElementById('codeJoinName  } else {
-    items = [
-      { id: 'dashboard', icon: '📊', label: 'لوحة التحكم' },
-      { id: 'transactions', icon: '🧾', label: 'المعاملات المالية' },
-      { id: 'team', icon: '👥', label: 'الفريق والأسرة' },
-      { id: 'accounts', icon: '🏦', label: 'الحسابات والميزانيات' },
-      { id: 'reports', icon: '📈', label: 'التقارير المالية' },
-      { id: 'settings', icon: '⚙️', label: 'الإعدادات والتكوين' },
-    ];
+  const name = document.getElementById('codeJoinName')?.value.trim();
+  const passwordRaw = document.getElementById('codeJoinPass')?.value;
+  const username = document.getElementById('codeJoinUsername')?.value.trim();
+  const note = document.getElementById('authNote');
+
+  const password = passwordRaw ? normalizeArabicDigits(passwordRaw) : '';
+
+  if (!join_code || !name || !password) {
+    if (note) note.textContent = 'يرجى إدخال كود الدعوة، واسمك الكامل، وكلمة السر (*)';
+    return;
   }
 
-  document.getElementById('navList').innerHTML = items.map(i => `
-    <button class="nav-item ${i.id === currentView ? 'active' : ''}" data-nav="${i.id}" title="${i.label}">
-      <div class="nav-bubble">${i.icon}</div><span class="nav-item-text">${i.label}</span>
-    </button>
-  `).join('');
-
-  document.querySelectorAll('[data-nav]').forEach(b => b.addEventListener('click', () => goTo(b.dataset.nav)));
+  try {
+    const res = await apiFetch('/api/auth/join-by-code', {
+      method: 'POST',
+      body: JSON.stringify({ join_code, name, password, username })
+    });
+    localStorage.setItem('mahfaza_token', res.token);
+    if (note) note.textContent = '';
+    await enterApp();
+    toast(`تم الانضمام بنجاح لمساحة ${res.workspace?.name || ''}، مرحباً بك يا ${res.user?.name || name}`, 'success');
+  } catch (err) {
+    if (note) note.textContent = err.message || 'فشل الانضمام السريع بكود الدعوة';
+  }
 }
+window.doCodeJoin = doCodeJoin;
 
-const PAGE_TITLES = {
-  dashboard: { title: 'لوحة التحكم', sub: 'نظرة عامة على وضعك المالي' },
-  transactions: { title: 'المعاملات المالية', sub: 'سجل جميع الإيرادات والمصروفات' },
-  team: { title: 'الفريق والأسرة', sub: 'إدارة الأعضاء والميزانيات المخصصة' },
-  accounts: { title: 'الحسابات والتحويلات والميزانيات', sub: 'إدارة البنوك والخزائن والتحويل المالي والتخطيط' },
-  reports: { title: 'التقارير المالية', sub: 'تحليلات ورسوم بيانية مفصلة' },
-  settings: { title: 'الإعدادات والتكوين', sub: 'ضبط الحساب، الفئات، الوسوم، المفضلة، وسجل الأنشطة' },
-};لمة المرور';
+async function quickDemoLogin(demoUserId, email) {
+  const note = document.getElementById('authNote');
+  try {
+    const res = await apiFetch('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ demoUserId, email })
+    });
+    localStorage.setItem('mahfaza_token', res.token);
+    if (note) note.textContent = '';
+    await enterApp();
+    toast(`مرحباً بك مجدداً يا ${res.user.name}`, 'success');
+  } catch (err) {
+    if (note) note.textContent = err.message || 'تعذر الدخول بالحساب التجريبي';
+  }
+}
+window.quickDemoLogin = quickDemoLogin;
+
+async function doLogin() {
+  const emailRaw = document.getElementById('loginEmail')?.value.trim();
+  const passwordRaw = document.getElementById('loginPass')?.value;
+  const note = document.getElementById('authNote');
+
+  const email = emailRaw ? emailRaw.toLowerCase() : '';
+  const password = passwordRaw ? normalizeArabicDigits(passwordRaw) : '';
+
+  if (!email || !password) {
+    if (note) note.textContent = 'يرجى إدخال البريد الإلكتروني وكلمة المرور';
     return;
   }
 

@@ -213,16 +213,18 @@ function initSchema() {
 
   // MIGRATIONS FOR EXISTING DEMO DATA
   try {
-    db.prepare('UPDATE users SET username = "admin" WHERE id = "u_admin" AND (username IS NULL OR username = "")').run();
-    db.prepare('UPDATE users SET username = "ahmed" WHERE id = "u_ahmed" AND (username IS NULL OR username = "")').run();
-    db.prepare('UPDATE users SET username = "sara" WHERE id = "u_sara" AND (username IS NULL OR username = "")').run();
-    db.prepare('UPDATE users SET username = "youssef" WHERE id = "u_youssef" AND (username IS NULL OR username = "")').run();
-    db.prepare('UPDATE users SET username = "omar" WHERE id = "u_omar" AND (username IS NULL OR username = "")').run();
-    db.prepare('UPDATE users SET username = "mona" WHERE id = "u_mona" AND (username IS NULL OR username = "")').run();
-    db.prepare('UPDATE users SET username = "khaled" WHERE id = "u_khaled" AND (username IS NULL OR username = "")').run();
-    db.prepare('UPDATE users SET username = "amal" WHERE id = "u_amal" AND (username IS NULL OR username = "")').run();
-    db.prepare('UPDATE workspaces SET join_code = "FAM-AHMED" WHERE id = "ws_ahmed_family"').run();
-  } catch (e) { }
+    const defaultP = hashPassword('123456');
+    db.prepare("UPDATE users SET password_hash = ? WHERE id IN ('u_admin', 'u_ahmed', 'u_sara', 'u_youssef', 'u_omar', 'u_mona', 'u_khaled', 'u_amal')").run(defaultP);
+    db.prepare("UPDATE users SET username = 'admin' WHERE id = 'u_admin'").run();
+    db.prepare("UPDATE users SET username = 'ahmed' WHERE id = 'u_ahmed'").run();
+    db.prepare("UPDATE users SET username = 'sara' WHERE id = 'u_sara'").run();
+    db.prepare("UPDATE users SET username = 'youssef' WHERE id = 'u_youssef'").run();
+    db.prepare("UPDATE users SET username = 'omar' WHERE id = 'u_omar'").run();
+    db.prepare("UPDATE users SET username = 'mona' WHERE id = 'u_mona'").run();
+    db.prepare("UPDATE users SET username = 'khaled' WHERE id = 'u_khaled'").run();
+    db.prepare("UPDATE users SET username = 'amal' WHERE id = 'u_amal'").run();
+    db.prepare("UPDATE workspaces SET join_code = 'FAM-AHMED' WHERE id = 'ws_ahmed_family'").run();
+  } catch (e) { console.error('Migration error:', e); }
 
   seedRichData();
 }

@@ -68,14 +68,40 @@ function recalcAccountBalance(accountId) {
   db.prepare('UPDATE accounts SET current_balance = ? WHERE id = ?').run(newBal, accountId);
 }
 
-function authenticate(req) {
+function authenticate(req, query = {}) {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+  let token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+  if (!token && query && (query.token || query.t)) {
+    token = query.token || query.t;
+  }
   const payload = verifyToken(token);
   if (!payload) return null;
   const user = db.prepare('SELECT id, name, email, global_role, status FROM users WHERE id = ?').get(payload.id);
   if (!user || user.status === 'suspended') return null;
   return user;
+}
+
+function getMemberMembership(userId, workspaceId) {
+  if (!userId || !workspaceId) return null;
+  return db.prepare('SELECT role, status FROM workspace_members WHERE workspace_id = ? AND user_id = ?').get(workspaceId, userId);
+}
+
+function verifyWorkspaceAccess(currentUser, workspaceId, isWriteOperation = false) {
+  if (!currentUser) return { allowed: false, error: 'غير مصرح (سجّل الدخول أولاً)', status: 401 };
+  if (currentUser.global_role === 'super_admin') return { allowed: true, role: 'super_admin' };
+
+  if (!workspaceId) return { allowed: false, error: 'معرف المساحة (workspace_id) مطلوب', status: 400 };
+
+  const mem = getMemberMembership(currentUser.id, workspaceId);
+  if (!mem || mem.status !== 'approved') {
+    return { allowed: false, error: 'غير مصرح لك بالوصول لبيانات هذه المساحة', status: 403 };
+  }
+
+  if (isWriteOperation && mem.role === 'viewer') {
+    return { allowed: false, error: 'صلاحيات مشاهد فقط (Viewer) - لا يمكنك الإضافة أو التعديل أو الحذف', status: 403 };
+  }
+
+  return { allowed: true, role: mem.role };
 }
 
 function generateJoinCode(prefix = 'WS') {
@@ -237,12 +263,11 @@ const server = http.createServer(async (req, res) => {
     }
 
     // Authenticated API Routes
-    const currentUser = authenticate(req);
+    const currentUser = authenticate(req, query);
     if (!currentUser) return sendJSON(res, { error: 'غير مصرح: يرجى تسجيل الدخول' }, 401);
 
     if (pathname === '/api/auth/me' && method === 'GET') {
-      const authUser = authenticate(req);
-      if (!authUser) return sendJSON(res, { error: 'غير مصرح' }, 401);
+      const authUser = currentUser;
       const fullUser = db.prepare('SELECT id, name, email, username, phone, job_title, bio, global_role, avatar, status FROM users WHERE id = ?').get(authUser.id);
 
       const workspaces = db.prepare(`
@@ -529,10 +554,12 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    // FUND REQUESTS (EXPENSE REQUESTS FROM MEMBERS TO OWNER)
+    // Fund Requests API
     if (pathname === '/api/fund-requests' && method === 'GET') {
       const wsId = query.workspace_id;
-      if (!wsId) return sendJSON(res, { error: 'workspace_id مطلوب' }, 400);
+      const wsAccess = verifyWorkspaceAccess(currentUser, wsId, false);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
+
       const reqs = db.prepare(`
         SELECT fr.*, u.name as user_name, u.email as user_email, u.username, c.name as category_name, c.icon as category_icon
         FROM fund_requests fr
@@ -546,7 +573,8 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === '/api/fund-requests' && method === 'POST') {
       const { workspace_id, title, amount, category_id, note } = body;
-      if (!workspace_id || !title || !amount) return sendJSON(res, { error: 'المساحة والعنوان والمبلغ حقول مطلوبة' }, 400);
+      const wsAccess = verifyWorkspaceAccess(currentUser, workspace_id, true);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
 
       const id = 'fr_' + Date.now();
       const now = new Date().toISOString();
@@ -570,9 +598,12 @@ const server = http.createServer(async (req, res) => {
       const fr = db.prepare('SELECT * FROM fund_requests WHERE id = ?').get(reqId);
       if (!fr) return sendJSON(res, { error: 'الطلب غير موجود' }, 404);
 
+      const wsAccess = verifyWorkspaceAccess(currentUser, fr.workspace_id, true);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
+
       const ws = db.prepare('SELECT owner_id FROM workspaces WHERE id = ?').get(fr.workspace_id);
       if (!ws || (ws.owner_id !== currentUser.id && currentUser.global_role !== 'super_admin')) {
-        return sendJSON(res, { error: 'صلاحيات مالك المساحة فقط' }, 403);
+        return sendJSON(res, { error: 'صلاحيات مالك المساحة فقط للموافقة على التمويل' }, 403);
       }
 
       if (action === 'approve') {
@@ -617,7 +648,9 @@ const server = http.createServer(async (req, res) => {
     // RECURRING BILLS API
     if (pathname === '/api/recurring-bills' && method === 'GET') {
       const wsId = query.workspace_id;
-      if (!wsId) return sendJSON(res, { error: 'workspace_id مطلوب' }, 400);
+      const wsAccess = verifyWorkspaceAccess(currentUser, wsId, false);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
+
       const bills = db.prepare(`
         SELECT rb.*, c.name as category_name, c.icon as category_icon, a.name as account_name
         FROM recurring_bills rb
@@ -631,7 +664,8 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === '/api/recurring-bills' && method === 'POST') {
       const { workspace_id, title, amount, due_day, category_id, account_id } = body;
-      if (!workspace_id || !title || !amount || !due_day) return sendJSON(res, { error: 'جميع حقول الفاتورة مطلوبة' }, 400);
+      const wsAccess = verifyWorkspaceAccess(currentUser, workspace_id, true);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
 
       const id = 'rb_' + Date.now();
       const now = new Date().toISOString();
@@ -647,6 +681,9 @@ const server = http.createServer(async (req, res) => {
       const billId = payBillMatch[1];
       const bill = db.prepare('SELECT * FROM recurring_bills WHERE id = ?').get(billId);
       if (!bill) return sendJSON(res, { error: 'الفاتورة غير موجودة' }, 404);
+
+      const wsAccess = verifyWorkspaceAccess(currentUser, bill.workspace_id, true);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
 
       const currentMonth = new Date().toISOString().substring(0, 7);
       const txId = 'tx_' + Date.now();
@@ -672,6 +709,12 @@ const server = http.createServer(async (req, res) => {
 
     const deleteBillMatch = pathname.match(/^\/api\/recurring-bills\/([^\/]+)$/);
     if (deleteBillMatch && method === 'DELETE') {
+      const bill = db.prepare('SELECT workspace_id FROM recurring_bills WHERE id = ?').get(deleteBillMatch[1]);
+      if (!bill) return sendJSON(res, { error: 'الفاتورة غير موجودة' }, 404);
+
+      const wsAccess = verifyWorkspaceAccess(currentUser, bill.workspace_id, true);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
+
       db.prepare('DELETE FROM recurring_bills WHERE id = ?').run(deleteBillMatch[1]);
       return sendJSON(res, { success: true });
     }
@@ -680,6 +723,8 @@ const server = http.createServer(async (req, res) => {
     if (wsCurrencyMatch && method === 'PUT') {
       const wsId = wsCurrencyMatch[1];
       const { currency } = body;
+      const wsAccess = verifyWorkspaceAccess(currentUser, wsId, true);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
       if (!currency) return sendJSON(res, { error: 'العملة مطلوبة' }, 400);
 
       db.prepare('UPDATE workspaces SET currency = ? WHERE id = ?').run(currency, wsId);
@@ -690,7 +735,8 @@ const server = http.createServer(async (req, res) => {
     // EXPORT TO EXCEL / CSV API
     if (pathname === '/api/export/excel' && method === 'GET') {
       const wsId = query.workspace_id;
-      if (!wsId) return sendJSON(res, { error: 'workspace_id مطلوب' }, 400);
+      const wsAccess = verifyWorkspaceAccess(currentUser, wsId, false);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
 
       const txs = db.prepare(`
         SELECT t.date, t.type, t.amount, t.note, c.name as category_name, a.name as account_name, u.name as user_name
@@ -716,25 +762,45 @@ const server = http.createServer(async (req, res) => {
       return res.end(csv);
     }
 
-    // AUDIT LOG API
+    // AUDIT LOG API (Scoped Security)
     if (pathname === '/api/audit-log' && method === 'GET') {
-      const logs = db.prepare(`
-        SELECT al.*, u.name as actor_name, u.email as actor_email
-        FROM audit_log al
-        LEFT JOIN users u ON al.actor_id = u.id
-        ORDER BY al.created_at DESC
-        LIMIT 100
-      `).all();
-      return sendJSON(res, logs);
+      if (currentUser.global_role === 'super_admin') {
+        const logs = db.prepare(`
+          SELECT al.*, u.name as actor_name, u.email as actor_email
+          FROM audit_log al
+          LEFT JOIN users u ON al.actor_id = u.id
+          ORDER BY al.created_at DESC LIMIT 100
+        `).all();
+        return sendJSON(res, logs);
+      } else {
+        const logs = db.prepare(`
+          SELECT al.*, u.name as actor_name, u.email as actor_email
+          FROM audit_log al
+          LEFT JOIN users u ON al.actor_id = u.id
+          WHERE al.actor_id = ? OR al.target IN (
+            SELECT id FROM workspaces WHERE id IN (
+              SELECT workspace_id FROM workspace_members WHERE user_id = ? AND status = 'approved'
+            )
+          )
+          ORDER BY al.created_at DESC LIMIT 100
+        `).all(currentUser.id, currentUser.id);
+        return sendJSON(res, logs);
+      }
     }
 
     // Accounts
     if (pathname === '/api/accounts' && method === 'GET') {
+      const wsAccess = verifyWorkspaceAccess(currentUser, query.workspace_id, false);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
+
       const accounts = db.prepare('SELECT * FROM accounts WHERE workspace_id = ?').all(query.workspace_id);
       return sendJSON(res, accounts);
     }
     if (pathname === '/api/accounts' && method === 'POST') {
       const { workspace_id, name, type, initial_balance, color } = body;
+      const wsAccess = verifyWorkspaceAccess(currentUser, workspace_id, true);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
+
       const id = 'acc_' + Date.now();
       const bal = parseFloat(initial_balance) || 0;
       const now = new Date().toISOString();
@@ -745,10 +811,13 @@ const server = http.createServer(async (req, res) => {
     }
     const accMatch = pathname.match(/^\/api\/accounts\/([^\/]+)$/);
     if (accMatch && method === 'PUT') {
-      const { name, type, color, initial_balance } = body;
       const oldAcc = db.prepare('SELECT * FROM accounts WHERE id = ?').get(accMatch[1]);
       if (!oldAcc) return sendJSON(res, { error: 'الحساب غير موجود' }, 404);
 
+      const wsAccess = verifyWorkspaceAccess(currentUser, oldAcc.workspace_id, true);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
+
+      const { name, type, color, initial_balance } = body;
       const initBal = initial_balance !== undefined ? parseFloat(initial_balance) : oldAcc.initial_balance;
       db.prepare('UPDATE accounts SET name = ?, type = ?, color = ?, initial_balance = ? WHERE id = ?').run(
         name.trim(), type || oldAcc.type, color || oldAcc.color, initBal, accMatch[1]
@@ -757,17 +826,29 @@ const server = http.createServer(async (req, res) => {
       return sendJSON(res, db.prepare('SELECT * FROM accounts WHERE id = ?').get(accMatch[1]));
     }
     if (accMatch && method === 'DELETE') {
+      const oldAcc = db.prepare('SELECT workspace_id FROM accounts WHERE id = ?').get(accMatch[1]);
+      if (!oldAcc) return sendJSON(res, { error: 'الحساب غير موجود' }, 404);
+
+      const wsAccess = verifyWorkspaceAccess(currentUser, oldAcc.workspace_id, true);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
+
       db.prepare('DELETE FROM accounts WHERE id = ?').run(accMatch[1]);
       return sendJSON(res, { success: true });
     }
 
     // Categories
     if (pathname === '/api/categories' && method === 'GET') {
+      const wsAccess = verifyWorkspaceAccess(currentUser, query.workspace_id, false);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
+
       const categories = db.prepare('SELECT * FROM categories WHERE workspace_id = ? ORDER BY sort_order ASC').all(query.workspace_id);
       return sendJSON(res, categories);
     }
     if (pathname === '/api/categories' && method === 'POST') {
       const { workspace_id, name, type, color, icon } = body;
+      const wsAccess = verifyWorkspaceAccess(currentUser, workspace_id, true);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
+
       const id = 'cat_' + Date.now();
       const maxRow = db.prepare('SELECT COALESCE(MAX(sort_order), 0) as m FROM categories WHERE workspace_id = ?').get(workspace_id);
       const maxOrder = maxRow ? maxRow.m : 0;
@@ -778,17 +859,32 @@ const server = http.createServer(async (req, res) => {
     }
     const catMatch = pathname.match(/^\/api\/categories\/([^\/]+)$/);
     if (catMatch && method === 'PUT') {
+      const oldCat = db.prepare('SELECT workspace_id FROM categories WHERE id = ?').get(catMatch[1]);
+      if (!oldCat) return sendJSON(res, { error: 'الفئة غير موجودة' }, 404);
+
+      const wsAccess = verifyWorkspaceAccess(currentUser, oldCat.workspace_id, true);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
+
       const { name, type, color, icon } = body;
       db.prepare('UPDATE categories SET name = ?, type = ?, color = ?, icon = ? WHERE id = ?').run(name.trim(), type, color, icon, catMatch[1]);
       return sendJSON(res, db.prepare('SELECT * FROM categories WHERE id = ?').get(catMatch[1]));
     }
     if (catMatch && method === 'DELETE') {
+      const oldCat = db.prepare('SELECT workspace_id FROM categories WHERE id = ?').get(catMatch[1]);
+      if (!oldCat) return sendJSON(res, { error: 'الفئة غير موجودة' }, 404);
+
+      const wsAccess = verifyWorkspaceAccess(currentUser, oldCat.workspace_id, true);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
+
       db.prepare('DELETE FROM categories WHERE id = ?').run(catMatch[1]);
       return sendJSON(res, { success: true });
     }
 
     // Transactions & Favorites
     if (pathname === '/api/transactions' && method === 'GET') {
+      const wsAccess = verifyWorkspaceAccess(currentUser, query.workspace_id, false);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
+
       const txs = db.prepare(`
         SELECT t.*, u.name as creator_name
         FROM transactions t
@@ -829,6 +925,8 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === '/api/transactions' && method === 'POST') {
       const { workspace_id, account_id, category_id, type, amount, date, note, is_favorite } = body;
+      const wsAccess = verifyWorkspaceAccess(currentUser, workspace_id, true);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
       if (!workspace_id || !account_id || !category_id || !amount) return sendJSON(res, { error: 'يرجى استكمال الحقول' }, 400);
 
       const id = 'tx_' + Date.now();
@@ -845,10 +943,13 @@ const server = http.createServer(async (req, res) => {
 
     const txMatch = pathname.match(/^\/api\/transactions\/([^\/]+)$/);
     if (txMatch && method === 'PUT') {
-      const { account_id, category_id, type, amount, date, note, is_favorite } = body;
       const oldTx = db.prepare('SELECT * FROM transactions WHERE id = ?').get(txMatch[1]);
       if (!oldTx) return sendJSON(res, { error: 'المعاملة غير موجودة' }, 404);
 
+      const wsAccess = verifyWorkspaceAccess(currentUser, oldTx.workspace_id, true);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
+
+      const { account_id, category_id, type, amount, date, note, is_favorite } = body;
       db.prepare(`
         UPDATE transactions
         SET account_id = ?, category_id = ?, type = ?, amount = ?, date = ?, note = ?, is_favorite = ?
@@ -863,6 +964,10 @@ const server = http.createServer(async (req, res) => {
     if (txMatch && method === 'DELETE') {
       const tx = db.prepare('SELECT * FROM transactions WHERE id = ?').get(txMatch[1]);
       if (!tx) return sendJSON(res, { error: 'المعاملة غير موجودة' }, 404);
+
+      const wsAccess = verifyWorkspaceAccess(currentUser, tx.workspace_id, true);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
+
       db.prepare('UPDATE transactions SET is_deleted = 1 WHERE id = ?').run(txMatch[1]);
       recalcAccountBalance(tx.account_id);
       return sendJSON(res, { success: true });
@@ -870,11 +975,17 @@ const server = http.createServer(async (req, res) => {
 
     // Budgets
     if (pathname === '/api/budgets' && method === 'GET') {
+      const wsAccess = verifyWorkspaceAccess(currentUser, query.workspace_id, false);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
+
       const budgets = db.prepare('SELECT * FROM budgets WHERE workspace_id = ?').all(query.workspace_id);
       return sendJSON(res, budgets);
     }
     if (pathname === '/api/budgets' && method === 'POST') {
       const { workspace_id, name, category_id, amount, period } = body;
+      const wsAccess = verifyWorkspaceAccess(currentUser, workspace_id, true);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
+
       const id = 'b_' + Date.now();
       db.prepare('INSERT INTO budgets (id, workspace_id, name, category_id, amount, period, start_date, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, 1)').run(
         id, workspace_id, name.trim(), category_id, parseFloat(amount), period || 'monthly', new Date().toISOString().slice(0, 7) + '-01'
@@ -883,22 +994,40 @@ const server = http.createServer(async (req, res) => {
     }
     const budMatch = pathname.match(/^\/api\/budgets\/([^\/]+)$/);
     if (budMatch && method === 'PUT') {
+      const oldBud = db.prepare('SELECT workspace_id FROM budgets WHERE id = ?').get(budMatch[1]);
+      if (!oldBud) return sendJSON(res, { error: 'الميزانية غير موجودة' }, 404);
+
+      const wsAccess = verifyWorkspaceAccess(currentUser, oldBud.workspace_id, true);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
+
       const { name, category_id, amount } = body;
       db.prepare('UPDATE budgets SET name = ?, category_id = ?, amount = ? WHERE id = ?').run(name.trim(), category_id, parseFloat(amount), budMatch[1]);
       return sendJSON(res, db.prepare('SELECT * FROM budgets WHERE id = ?').get(budMatch[1]));
     }
     if (budMatch && method === 'DELETE') {
+      const oldBud = db.prepare('SELECT workspace_id FROM budgets WHERE id = ?').get(budMatch[1]);
+      if (!oldBud) return sendJSON(res, { error: 'الميزانية غير موجودة' }, 404);
+
+      const wsAccess = verifyWorkspaceAccess(currentUser, oldBud.workspace_id, true);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
+
       db.prepare('DELETE FROM budgets WHERE id = ?').run(budMatch[1]);
       return sendJSON(res, { success: true });
     }
 
     // Tags
     if (pathname === '/api/tags' && method === 'GET') {
+      const wsAccess = verifyWorkspaceAccess(currentUser, query.workspace_id, false);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
+
       const tags = db.prepare('SELECT * FROM tags WHERE workspace_id = ?').all(query.workspace_id);
       return sendJSON(res, tags);
     }
     if (pathname === '/api/tags' && method === 'POST') {
       const { workspace_id, name, color, icon } = body;
+      const wsAccess = verifyWorkspaceAccess(currentUser, workspace_id, true);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
+
       const id = 'tag_' + Date.now();
       db.prepare('INSERT INTO tags (id, workspace_id, name, color, icon) VALUES (?, ?, ?, ?, ?)').run(
         id, workspace_id, name.trim(), color || '#0E9A73', icon || '🏷️'
@@ -907,11 +1036,23 @@ const server = http.createServer(async (req, res) => {
     }
     const tagMatch = pathname.match(/^\/api\/tags\/([^\/]+)$/);
     if (tagMatch && method === 'PUT') {
+      const oldTag = db.prepare('SELECT workspace_id FROM tags WHERE id = ?').get(tagMatch[1]);
+      if (!oldTag) return sendJSON(res, { error: 'الوسم غير موجود' }, 404);
+
+      const wsAccess = verifyWorkspaceAccess(currentUser, oldTag.workspace_id, true);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
+
       const { name, color, icon } = body;
       db.prepare('UPDATE tags SET name = ?, color = ?, icon = ? WHERE id = ?').run(name.trim(), color, icon, tagMatch[1]);
       return sendJSON(res, db.prepare('SELECT * FROM tags WHERE id = ?').get(tagMatch[1]));
     }
     if (tagMatch && method === 'DELETE') {
+      const oldTag = db.prepare('SELECT workspace_id FROM tags WHERE id = ?').get(tagMatch[1]);
+      if (!oldTag) return sendJSON(res, { error: 'الوسم غير موجود' }, 404);
+
+      const wsAccess = verifyWorkspaceAccess(currentUser, oldTag.workspace_id, true);
+      if (!wsAccess.allowed) return sendJSON(res, { error: wsAccess.error }, wsAccess.status);
+
       db.prepare('DELETE FROM tags WHERE id = ?').run(tagMatch[1]);
       return sendJSON(res, { success: true });
     }

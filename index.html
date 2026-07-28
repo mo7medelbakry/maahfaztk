@@ -3333,7 +3333,8 @@ window.renderAiSmartInsights = renderAiSmartInsights;
 
 async function exportToExcel() {
   const ws = currentWorkspace(); if (!ws) return;
-  window.open(`/api/export/excel?workspace_id=${ws.id}`, '_blank');
+  const token = localStorage.getItem('mahfaza_token');
+  window.open(`/api/export/excel?workspace_id=${ws.id}&token=${token}`, '_blank');
   toast('جاري تحميل تقرير Excel المنسق باللغة العربية 📊', 'success');
 }
 window.exportToExcel = exportToExcel;
